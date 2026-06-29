@@ -40,6 +40,10 @@ El plugin conecta tu tienda WooCommerce con el sistema de facturación CFDI medi
 
 == Changelog ==
 
+= 1.3.0 =
+* Columna "CFDI" con el estatus de facturación en la lista de pedidos (HPOS y legacy).
+* Acción "Reintentar facturación CFDI" en la página del pedido.
+
 = 1.2.0 =
 * Webhook: recibe la notificación del puente al timbrar (alternativa al polling), autenticado por token.
 * Prueba de conexión usa el endpoint /health del puente.
