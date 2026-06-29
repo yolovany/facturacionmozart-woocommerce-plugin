@@ -19,6 +19,46 @@ class FCFDI_Blocks {
 
 	public static function init() {
 		add_action( 'woocommerce_init', array( __CLASS__, 'registrar' ) );
+		// Validación condicional cruzada en el checkout de bloques.
+		add_filter( 'woocommerce_blocks_validate_location_order_fields', array( __CLASS__, 'validar_order' ), 10, 3 );
+	}
+
+	/**
+	 * Si el cliente marca "Requiero factura", exige los datos fiscales (checkout de bloques).
+	 *
+	 * @param \WP_Error $errors Errores acumulados.
+	 * @param array     $fields Valores de los campos de la ubicación 'order'.
+	 * @param string    $group  Grupo (other).
+	 * @return \WP_Error
+	 */
+	public static function validar_order( $errors, $fields, $group ) {
+		if ( empty( $fields[ self::field_id( 'requiere-factura' ) ] ) ) {
+			return $errors;
+		}
+
+		$rfc     = strtoupper( trim( (string) ( $fields[ self::field_id( 'rfc' ) ] ?? '' ) ) );
+		$razon   = trim( (string) ( $fields[ self::field_id( 'razon-social' ) ] ?? '' ) );
+		$cp      = trim( (string) ( $fields[ self::field_id( 'cp' ) ] ?? '' ) );
+		$regimen = trim( (string) ( $fields[ self::field_id( 'regimen-fiscal' ) ] ?? '' ) );
+		$uso     = trim( (string) ( $fields[ self::field_id( 'uso-cfdi' ) ] ?? '' ) );
+
+		if ( ! preg_match( '/^([A-ZÑ&]{3,4})\d{6}([A-Z\d]{3})$/', $rfc ) ) {
+			$errors->add( 'fcfdi_rfc', __( 'El RFC no tiene un formato válido.', 'facturacion-cfdi' ) );
+		}
+		if ( '' === $razon ) {
+			$errors->add( 'fcfdi_razon', __( 'Captura la razón social para facturar.', 'facturacion-cfdi' ) );
+		}
+		if ( ! preg_match( '/^\d{5}$/', $cp ) ) {
+			$errors->add( 'fcfdi_cp', __( 'El código postal fiscal debe tener 5 dígitos.', 'facturacion-cfdi' ) );
+		}
+		if ( '' === $regimen ) {
+			$errors->add( 'fcfdi_regimen', __( 'Selecciona el régimen fiscal.', 'facturacion-cfdi' ) );
+		}
+		if ( '' === $uso ) {
+			$errors->add( 'fcfdi_uso', __( 'Selecciona el uso de CFDI.', 'facturacion-cfdi' ) );
+		}
+
+		return $errors;
 	}
 
 	/**
