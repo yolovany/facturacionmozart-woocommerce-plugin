@@ -122,7 +122,9 @@ class FCFDI_Blocks {
 	 */
 	public static function leer( $order, $slug ) {
 		$id = self::field_id( $slug );
-		foreach ( array( '_wc_order/' . $id, '_' . $id, $id ) as $key ) {
+		// WooCommerce guarda los additional checkout fields de bloques con el prefijo
+		// "_wc_other/". Se incluyen otros candidatos por compatibilidad entre versiones.
+		foreach ( array( '_wc_other/' . $id, '_wc_order/' . $id, '_' . $id, $id ) as $key ) {
 			$val = $order->get_meta( $key );
 			if ( '' !== $val && null !== $val ) {
 				return is_bool( $val ) ? ( $val ? '1' : '' ) : (string) $val;

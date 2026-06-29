@@ -40,6 +40,10 @@ El plugin conecta tu tienda WooCommerce con el sistema de facturación CFDI medi
 
 == Changelog ==
 
+= 1.3.1 =
+* Corrige la lectura de los campos fiscales del checkout por bloques (clave de meta `_wc_other/`).
+  Antes, un pedido por bloques con factura se trataba como público en general.
+
 = 1.3.0 =
 * Columna "CFDI" con el estatus de facturación en la lista de pedidos (HPOS y legacy).
 * Acción "Reintentar facturación CFDI" en la página del pedido.
