@@ -37,8 +37,16 @@ El plugin conecta tu tienda WooCommerce con el sistema de facturación CFDI medi
 * `fcfdi_metodo_pago` — método de pago SAT (por defecto PUE).
 * `fcfdi_clave_prod_serv_envio` — ClaveProdServ del concepto de envío (por defecto 78102200).
 * `fcfdi_clave_unidad_envio` — ClaveUnidad del concepto de envío (por defecto E48).
+* `fcfdi_motivo_cancelacion` — motivo SAT de cancelación (por defecto 02).
+* `fcfdi_folio_sustitucion` — UUID sustituto para cancelación con motivo 01.
+* `fcfdi_emails_con_cfdi` — correos de WooCommerce donde se adjunta el CFDI.
 
 == Changelog ==
+
+= 1.6.0 =
+* Entrega del CFDI: adjunta el XML y PDF al correo de pedido completado / factura de
+  WooCommerce, para que el cliente (incluido el invitado) reciba su factura.
+  Filtro fcfdi_emails_con_cfdi para elegir en qué correos se adjunta.
 
 = 1.5.0 =
 * Cancelación de CFDI ante el SAT al cancelar o reembolsar totalmente el pedido (Fase 6).

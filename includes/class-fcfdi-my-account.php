@@ -17,6 +17,52 @@ class FCFDI_My_Account {
 	public static function init() {
 		add_action( 'woocommerce_order_details_after_order_table', array( __CLASS__, 'mostrar' ) );
 		add_action( 'admin_post_' . self::ACTION, array( __CLASS__, 'descargar' ) );
+		// Adjunta el CFDI (XML+PDF) al correo de pedido completado / factura.
+		add_filter( 'woocommerce_email_attachments', array( __CLASS__, 'adjuntar_email' ), 10, 3 );
+	}
+
+	/**
+	 * Adjunta el XML y PDF del CFDI a los correos de WooCommerce, de modo que el cliente
+	 * (incluido el invitado sin cuenta) reciba su factura.
+	 *
+	 * @param array  $attachments Rutas de archivos adjuntos.
+	 * @param string $email_id    Id del correo.
+	 * @param mixed  $order       Pedido (u otro objeto).
+	 * @return array
+	 */
+	public static function adjuntar_email( $attachments, $email_id, $order ) {
+		if ( ! ( $order instanceof WC_Order ) ) {
+			return $attachments;
+		}
+		$correos = apply_filters(
+			'fcfdi_emails_con_cfdi',
+			array( 'customer_completed_order', 'customer_invoice' )
+		);
+		if ( ! in_array( $email_id, $correos, true ) ) {
+			return $attachments;
+		}
+		if ( 'timbrada' !== $order->get_meta( '_fcfdi_estatus' ) ) {
+			return $attachments;
+		}
+		$factura_id = $order->get_meta( '_fcfdi_factura_id' );
+		if ( ! $factura_id ) {
+			return $attachments;
+		}
+
+		$client = new FCFDI_Api_Client();
+		$nombre = $order->get_meta( '_fcfdi_uuid' ) ? $order->get_meta( '_fcfdi_uuid' ) : $factura_id;
+
+		foreach ( array( 'xml', 'pdf' ) as $formato ) {
+			$res = $client->descargar( $factura_id, $formato );
+			if ( is_wp_error( $res ) || (int) $res['code'] !== 200 || empty( $res['body'] ) ) {
+				continue;
+			}
+			$ruta = trailingslashit( get_temp_dir() ) . 'cfdi-' . sanitize_file_name( $nombre ) . '.' . $formato;
+			if ( false !== file_put_contents( $ruta, $res['body'] ) ) { // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents
+				$attachments[] = $ruta;
+			}
+		}
+		return $attachments;
 	}
 
 	/**
