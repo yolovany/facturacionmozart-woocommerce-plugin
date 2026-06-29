@@ -19,9 +19,10 @@ class FCFDI_Admin_Orders {
 		// Columna (legacy posts).
 		add_filter( 'manage_edit-shop_order_columns', array( __CLASS__, 'columna' ) );
 		add_action( 'manage_shop_order_posts_custom_column', array( __CLASS__, 'celda_legacy' ), 10, 2 );
-		// Acción de reintento en la página del pedido.
+		// Acciones en la página del pedido.
 		add_filter( 'woocommerce_order_actions', array( __CLASS__, 'accion' ) );
 		add_action( 'woocommerce_order_action_fcfdi_reintentar', array( __CLASS__, 'reintentar' ) );
+		add_action( 'woocommerce_order_action_fcfdi_cancelar', array( __CLASS__, 'cancelar' ) );
 	}
 
 	/**
@@ -67,6 +68,7 @@ class FCFDI_Admin_Orders {
 			'en_proceso'   => '#f9a825',
 			'reintentando' => '#f9a825',
 			'encolada'     => '#1565c0',
+			'cancelada'    => '#9e9e9e',
 		);
 		$color = isset( $colores[ $estatus ] ) ? $colores[ $estatus ] : '#616161';
 		printf( '<span style="color:%1$s;font-weight:600;">%2$s</span>', esc_attr( $color ), esc_html( $estatus ) );
@@ -85,11 +87,27 @@ class FCFDI_Admin_Orders {
 		global $theorder;
 		if ( $theorder instanceof WC_Order ) {
 			$estatus = $theorder->get_meta( '_fcfdi_estatus' );
-			if ( 'timbrada' !== $estatus ) {
+			if ( ! $estatus ) {
+				return $acciones;
+			}
+			if ( 'timbrada' === $estatus ) {
+				$acciones['fcfdi_cancelar'] = __( 'Cancelar CFDI ante el SAT', 'facturacion-cfdi' );
+			} elseif ( 'cancelada' !== $estatus ) {
 				$acciones['fcfdi_reintentar'] = __( 'Reintentar facturación CFDI', 'facturacion-cfdi' );
 			}
 		}
 		return $acciones;
+	}
+
+	/**
+	 * Cancela el CFDI del pedido ante el SAT (acción manual).
+	 *
+	 * @param WC_Order $order Pedido.
+	 */
+	public static function cancelar( $order ) {
+		if ( class_exists( 'FCFDI_Cancel' ) ) {
+			FCFDI_Cancel::cancelar_cfdi( $order );
+		}
 	}
 
 	/**

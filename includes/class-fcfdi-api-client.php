@@ -98,6 +98,35 @@ class FCFDI_Api_Client {
 	}
 
 	/**
+	 * Solicita la cancelación de un CFDI ante el SAT.
+	 *
+	 * @param string $factura_id Id de la factura en el puente.
+	 * @param string $motivo     Motivo SAT (01-04).
+	 * @param string $folio      UUID sustituto (si motivo = 01).
+	 * @return array|WP_Error
+	 */
+	public function cancelar( $factura_id, $motivo = '02', $folio = '' ) {
+		$res = wp_remote_post(
+			$this->base_url . '/' . rawurlencode( $factura_id ) . '/cancelar',
+			array(
+				'timeout' => 60,
+				'headers' => array(
+					'Authorization' => 'Bearer ' . $this->token,
+					'Content-Type'  => 'application/json',
+					'Accept'        => 'application/json',
+				),
+				'body'    => wp_json_encode(
+					array(
+						'motivo'            => $motivo,
+						'folio_sustitucion' => $folio,
+					)
+				),
+			)
+		);
+		return $this->normalizar( $res );
+	}
+
+	/**
 	 * Descarga el XML o PDF desde el puente (autenticado con el token).
 	 *
 	 * @param string $factura_id Id.

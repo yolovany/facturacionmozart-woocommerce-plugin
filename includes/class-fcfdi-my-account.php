@@ -42,6 +42,8 @@ class FCFDI_My_Account {
 			echo '<a class="button" href="' . esc_url( $pdf ) . '">' . esc_html__( 'Descargar PDF', 'facturacion-cfdi' ) . '</a> ';
 			echo '<a class="button" href="' . esc_url( $xml ) . '">' . esc_html__( 'Descargar XML', 'facturacion-cfdi' ) . '</a>';
 			echo '</p>';
+		} elseif ( 'cancelada' === $estatus ) {
+			echo '<p>' . esc_html__( 'Esta factura fue cancelada ante el SAT.', 'facturacion-cfdi' ) . '</p>';
 		} elseif ( 'error' === $estatus ) {
 			echo '<p>' . esc_html__( 'Hubo un problema al generar la factura. Contacta a la tienda.', 'facturacion-cfdi' ) . '</p>';
 		} else {

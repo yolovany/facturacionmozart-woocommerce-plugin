@@ -40,6 +40,11 @@ El plugin conecta tu tienda WooCommerce con el sistema de facturación CFDI medi
 
 == Changelog ==
 
+= 1.5.0 =
+* Cancelación de CFDI ante el SAT al cancelar o reembolsar totalmente el pedido (Fase 6).
+* Acción manual "Cancelar CFDI ante el SAT" en la página del pedido.
+* Filtros fcfdi_motivo_cancelacion (por defecto 02) y fcfdi_folio_sustitucion.
+
 = 1.4.0 =
 * Validación condicional en el checkout por bloques: si el cliente marca "Requiero factura",
   el RFC, razón social, CP, régimen y uso de CFDI pasan a obligatorios (con formato).
