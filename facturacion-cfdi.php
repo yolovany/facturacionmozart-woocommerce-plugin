@@ -3,7 +3,7 @@
  * Plugin Name:       Facturación CFDI para WooCommerce
  * Plugin URI:        https://github.com/yolovany/FacturacionMozart
  * Description:        Genera facturas CFDI automáticamente para cada pedido de WooCommerce a través del puente REST del sistema de facturación. El cliente puede solicitar factura con su RFC en el checkout; si no, se factura a público en general.
- * Version:           1.0.0
+ * Version:           1.1.0
  * Requires at least: 6.0
  * Requires PHP:      7.4
  * Author:            Infotek
@@ -19,7 +19,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit; // Acceso directo no permitido.
 }
 
-define( 'FCFDI_VERSION', '1.0.0' );
+define( 'FCFDI_VERSION', '1.1.0' );
 define( 'FCFDI_PLUGIN_FILE', __FILE__ );
 define( 'FCFDI_PLUGIN_DIR', plugin_dir_path( __FILE__ ) );
 define( 'FCFDI_PLUGIN_URL', plugin_dir_url( __FILE__ ) );
@@ -57,11 +57,15 @@ add_action(
 		require_once FCFDI_PLUGIN_DIR . 'includes/class-fcfdi-settings.php';
 		require_once FCFDI_PLUGIN_DIR . 'includes/class-fcfdi-api-client.php';
 		require_once FCFDI_PLUGIN_DIR . 'includes/class-fcfdi-checkout.php';
+		require_once FCFDI_PLUGIN_DIR . 'includes/class-fcfdi-blocks.php';
+		require_once FCFDI_PLUGIN_DIR . 'includes/class-fcfdi-product-admin.php';
 		require_once FCFDI_PLUGIN_DIR . 'includes/class-fcfdi-order-handler.php';
 		require_once FCFDI_PLUGIN_DIR . 'includes/class-fcfdi-my-account.php';
 
 		FCFDI_Settings::init();
 		FCFDI_Checkout::init();
+		FCFDI_Blocks::init();
+		FCFDI_Product_Admin::init();
 		FCFDI_Order_Handler::init();
 		FCFDI_My_Account::init();
 

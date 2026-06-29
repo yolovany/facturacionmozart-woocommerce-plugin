@@ -35,8 +35,15 @@ El plugin conecta tu tienda WooCommerce con el sistema de facturación CFDI medi
 * `fcfdi_payload` — ajusta el payload antes de enviarlo.
 * `fcfdi_forma_pago` — forma de pago SAT (por defecto 99).
 * `fcfdi_metodo_pago` — método de pago SAT (por defecto PUE).
+* `fcfdi_clave_prod_serv_envio` — ClaveProdServ del concepto de envío (por defecto 78102200).
+* `fcfdi_clave_unidad_envio` — ClaveUnidad del concepto de envío (por defecto E48).
 
 == Changelog ==
+
+= 1.1.0 =
+* Envío/shipping facturado como concepto.
+* Campos SAT (ClaveProdServ / ClaveUnidad) por producto en el admin.
+* Soporte de checkout por bloques (additional checkout fields, WC 8.9+). Requiere validación en WordPress.
 
 = 1.0.0 =
 * Versión inicial: checkout, envío asíncrono, polling de estatus y descarga en Mi cuenta.

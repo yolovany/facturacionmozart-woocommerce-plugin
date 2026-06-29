@@ -44,7 +44,7 @@ class FCFDI_Order_Handler {
 		}
 		// Si no se factura siempre y el cliente no pidió factura, no hacemos nada.
 		$siempre  = 'si' === FCFDI_Settings::get( 'facturar_siempre', 'si' );
-		$requiere = 'si' === $order->get_meta( '_fcfdi_requiere_factura' );
+		$requiere = self::requiere_factura( $order );
 		if ( ! $siempre && ! $requiere ) {
 			return;
 		}
@@ -224,22 +224,55 @@ class FCFDI_Order_Handler {
 	}
 
 	/**
+	 * Determina si el cliente solicitó factura (checkout clásico o de bloques).
+	 *
+	 * @param WC_Order $order Pedido.
+	 * @return bool
+	 */
+	private static function requiere_factura( $order ) {
+		if ( 'si' === $order->get_meta( '_fcfdi_requiere_factura' ) ) {
+			return true;
+		}
+		if ( class_exists( 'FCFDI_Blocks' ) ) {
+			$v = FCFDI_Blocks::leer( $order, 'requiere-factura' );
+			return ( '1' === $v || 'true' === $v || 'si' === $v );
+		}
+		return false;
+	}
+
+	/**
+	 * Lee un dato fiscal: meta clásica y, si está vacía, el campo de bloque.
+	 *
+	 * @param WC_Order $order      Pedido.
+	 * @param string   $clasico    Meta key del checkout clásico.
+	 * @param string   $block_slug Slug del campo de bloque.
+	 * @return string
+	 */
+	private static function dato( $order, $clasico, $block_slug ) {
+		$val = $order->get_meta( $clasico );
+		if ( '' !== $val && null !== $val ) {
+			return (string) $val;
+		}
+		return class_exists( 'FCFDI_Blocks' ) ? FCFDI_Blocks::leer( $order, $block_slug ) : '';
+	}
+
+	/**
 	 * Construye el payload del contrato a partir del pedido.
 	 *
 	 * @param WC_Order $order Pedido.
 	 * @return array
 	 */
 	private static function construir_payload( $order ) {
-		$requiere = 'si' === $order->get_meta( '_fcfdi_requiere_factura' );
+		$requiere = self::requiere_factura( $order );
 
 		if ( $requiere ) {
 			$receptor = array(
 				'tipo'           => 'rfc',
-				'rfc'            => $order->get_meta( '_fcfdi_rfc' ),
-				'razon_social'   => $order->get_meta( '_fcfdi_razon_social' ),
-				'regimen_fiscal' => $order->get_meta( '_fcfdi_regimen_fiscal' ),
-				'cp'             => $order->get_meta( '_fcfdi_cp' ),
-				'uso_cfdi'       => $order->get_meta( '_fcfdi_uso_cfdi' ),
+				'rfc'            => self::dato( $order, '_fcfdi_rfc', 'rfc' ),
+				'razon_social'   => self::dato( $order, '_fcfdi_razon_social', 'razon-social' ),
+				'regimen_fiscal' => self::dato( $order, '_fcfdi_regimen_fiscal', 'regimen-fiscal' ),
+				'cp'             => self::dato( $order, '_fcfdi_cp', 'cp' ),
+				'uso_cfdi'       => self::dato( $order, '_fcfdi_uso_cfdi', 'uso-cfdi' ),
 				'email'          => $order->get_billing_email(),
 			);
 		} else {
@@ -296,6 +329,36 @@ class FCFDI_Order_Handler {
 			$subtotal   += round( $linea_sub, 2 );
 			$descuento  += $desc_item;
 			$impuestos  += round( $linea_tax, 2 );
+		}
+
+		// Envío como concepto (si el pedido tiene costo de envío).
+		$envio     = (float) $order->get_shipping_total();
+		$envio_tax = (float) $order->get_shipping_tax();
+		if ( $envio > 0 ) {
+			$tasa_envio = $envio > 0 ? round( $envio_tax / $envio, 6 ) : 0.0;
+			$concepto_envio = array(
+				'sku'             => 'ENVIO',
+				'descripcion'     => __( 'Servicio de envío', 'facturacion-cfdi' ),
+				'cantidad'        => 1,
+				'valor_unitario'  => round( $envio, 2 ),
+				'importe'         => round( $envio, 2 ),
+				'descuento'       => 0,
+				'objeto_impuesto' => $envio_tax > 0 ? '02' : '01',
+				'clave_prod_serv' => apply_filters( 'fcfdi_clave_prod_serv_envio', '78102200', $order ),
+				'clave_unidad'    => apply_filters( 'fcfdi_clave_unidad_envio', 'E48', $order ),
+			);
+			if ( $envio_tax > 0 ) {
+				$concepto_envio['impuestos'] = array(
+					array(
+						'tipo'    => 'IVA',
+						'tasa'    => $tasa_envio,
+						'importe' => round( $envio_tax, 2 ),
+					),
+				);
+			}
+			$conceptos[] = $concepto_envio;
+			$subtotal   += round( $envio, 2 );
+			$impuestos  += round( $envio_tax, 2 );
 		}
 
 		$subtotal  = round( $subtotal, 2 );
