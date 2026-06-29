@@ -40,6 +40,10 @@ El plugin conecta tu tienda WooCommerce con el sistema de facturación CFDI medi
 
 == Changelog ==
 
+= 1.2.0 =
+* Webhook: recibe la notificación del puente al timbrar (alternativa al polling), autenticado por token.
+* Prueba de conexión usa el endpoint /health del puente.
+
 = 1.1.0 =
 * Envío/shipping facturado como concepto.
 * Campos SAT (ClaveProdServ / ClaveUnidad) por producto en el admin.

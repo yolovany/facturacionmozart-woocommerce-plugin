@@ -47,6 +47,26 @@ class FCFDI_Api_Client {
 	}
 
 	/**
+	 * Consulta el estado del puente (endpoint /health).
+	 *
+	 * @return array|WP_Error
+	 */
+	public function health() {
+		$root = preg_replace( '#/facturas/?$#', '', $this->base_url );
+		$res  = wp_remote_get(
+			$root . '/health',
+			array(
+				'timeout' => 20,
+				'headers' => array(
+					'Authorization' => 'Bearer ' . $this->token,
+					'Accept'        => 'application/json',
+				),
+			)
+		);
+		return $this->normalizar( $res );
+	}
+
+	/**
 	 * Consulta el estatus de una factura.
 	 *
 	 * @param string $factura_id Identificador devuelto por el puente.

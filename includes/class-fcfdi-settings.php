@@ -155,14 +155,16 @@ class FCFDI_Settings {
 		}
 
 		$client = new FCFDI_Api_Client();
-		$res     = $client->consultar_estatus( '__fcfdi_prueba__' );
+		$res     = $client->health();
 
 		if ( is_wp_error( $res ) ) {
 			wp_send_json_error( sprintf( __( 'No se pudo conectar: %s', 'facturacion-cfdi' ), $res->get_error_message() ) );
 		}
 		$code = (int) $res['code'];
-		if ( 404 === $code ) {
-			wp_send_json_error( '✅ ' . __( 'Conexión y token correctos.', 'facturacion-cfdi' ) );
+		if ( 200 === $code && isset( $res['body']['status'] ) && 'ok' === $res['body']['status'] ) {
+			$comercio = isset( $res['body']['comercio'] ) ? $res['body']['comercio'] : '';
+			$pruebas  = ! empty( $res['body']['timbrado_pruebas'] ) ? __( ' (modo PRUEBAS)', 'facturacion-cfdi' ) : '';
+			wp_send_json_error( '✅ ' . sprintf( __( 'Conexión correcta. Comercio: %1$s%2$s', 'facturacion-cfdi' ), $comercio, $pruebas ) );
 		}
 		if ( 401 === $code || 403 === $code ) {
 			wp_send_json_error( '❌ ' . __( 'Token inválido o IP no autorizada.', 'facturacion-cfdi' ) );

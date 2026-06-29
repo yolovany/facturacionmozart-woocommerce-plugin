@@ -370,6 +370,7 @@ class FCFDI_Order_Handler {
 			'order_id'         => (string) $order->get_id(),
 			'fecha_pedido'     => $order->get_date_created() ? $order->get_date_created()->format( 'c' ) : gmdate( 'c' ),
 			'requiere_factura' => $requiere,
+			'callback_url'     => class_exists( 'FCFDI_Webhook' ) ? FCFDI_Webhook::url() : '',
 			'receptor'         => $receptor,
 			'conceptos'        => $conceptos,
 			'totales'          => array(
