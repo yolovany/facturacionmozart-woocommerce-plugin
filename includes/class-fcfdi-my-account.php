@@ -89,7 +89,18 @@ class FCFDI_My_Account {
 			echo '<a class="button" href="' . esc_url( $xml ) . '">' . esc_html__( 'Descargar XML', 'facturacion-cfdi' ) . '</a>';
 			echo '</p>';
 		} elseif ( 'cancelada' === $estatus ) {
-			echo '<p>' . esc_html__( 'Esta factura fue cancelada ante el SAT.', 'facturacion-cfdi' ) . '</p>';
+			// El SAT obliga a conservar el CFDI cancelado: se mantiene la descarga.
+			$uuid = $order->get_meta( '_fcfdi_uuid' );
+			echo '<p>' . esc_html__( 'Esta factura fue cancelada ante el SAT. Conserva el comprobante para tus registros.', 'facturacion-cfdi' ) . '</p>';
+			if ( $uuid ) {
+				echo '<p>' . esc_html__( 'UUID:', 'facturacion-cfdi' ) . ' <code>' . esc_html( $uuid ) . '</code></p>';
+			}
+			$xml = self::url_descarga( $order->get_id(), 'xml' );
+			$pdf = self::url_descarga( $order->get_id(), 'pdf' );
+			echo '<p>';
+			echo '<a class="button" href="' . esc_url( $pdf ) . '">' . esc_html__( 'Descargar PDF', 'facturacion-cfdi' ) . '</a> ';
+			echo '<a class="button" href="' . esc_url( $xml ) . '">' . esc_html__( 'Descargar XML', 'facturacion-cfdi' ) . '</a>';
+			echo '</p>';
 		} elseif ( 'error' === $estatus ) {
 			// Muestra el motivo real (mapeado a lenguaje claro) en vez de un genérico.
 			$guardado = (string) $order->get_meta( '_fcfdi_error' );
@@ -123,6 +134,18 @@ class FCFDI_My_Account {
 	}
 
 	/**
+	 * Igual que url_descarga() pero público, para que otras clases (p.ej. la pestaña
+	 * "Mis Facturas") generen el enlace al mismo proxy autenticado.
+	 *
+	 * @param int    $order_id Id del pedido.
+	 * @param string $formato  'xml' o 'pdf'.
+	 * @return string
+	 */
+	public static function url_descarga_publica( $order_id, $formato ) {
+		return self::url_descarga( $order_id, $formato );
+	}
+
+	/**
 	 * Proxy de descarga: valida propiedad del pedido, descarga del puente y hace stream.
 	 */
 	public static function descargar() {
@@ -146,7 +169,10 @@ class FCFDI_My_Account {
 		}
 
 		$factura_id = $order->get_meta( '_fcfdi_factura_id' );
-		if ( ! $factura_id || 'timbrada' !== $order->get_meta( '_fcfdi_estatus' ) ) {
+		$estatus    = $order->get_meta( '_fcfdi_estatus' );
+		// Timbrada o cancelada: en ambos casos el CFDI existe y debe poder descargarse
+		// (el SAT obliga a conservar el cancelado).
+		if ( ! $factura_id || ! in_array( $estatus, array( 'timbrada', 'cancelada' ), true ) ) {
 			wp_die( esc_html__( 'La factura aún no está disponible.', 'facturacion-cfdi' ), '', array( 'response' => 409 ) );
 		}
 
