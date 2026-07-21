@@ -159,44 +159,68 @@ class FCFDI_Cliente {
 		}
 
 		$val = function ( $campo ) use ( $user_id ) {
-			return esc_attr( (string) get_user_meta( $user_id, 'fcfdi_perfil_' . $campo, true ) );
+			return (string) get_user_meta( $user_id, 'fcfdi_perfil_' . $campo, true );
 		};
 
 		echo '<h2>' . esc_html__( 'Perfil fiscal', 'facturacion-cfdi' ) . '</h2>';
 		echo '<p>' . esc_html__( 'Guarda tus datos fiscales para autocompletar el checkout la próxima vez.', 'facturacion-cfdi' ) . '</p>';
-		echo '<form method="post">';
+		echo '<form method="post" class="woocommerce-EditAccountForm">';
 		wp_nonce_field( 'fcfdi_perfil' );
-		echo '<p><label>' . esc_html__( 'RFC', 'facturacion-cfdi' ) . '<br><input type="text" name="fcfdi_rfc" value="' . $val( 'rfc' ) . '"></label></p>';
-		echo '<p><label>' . esc_html__( 'Razón social', 'facturacion-cfdi' ) . '<br><input type="text" name="fcfdi_razon_social" value="' . $val( 'razon_social' ) . '"></label></p>';
-		echo '<p><label>' . esc_html__( 'Código postal fiscal', 'facturacion-cfdi' ) . '<br><input type="text" name="fcfdi_cp" value="' . $val( 'cp' ) . '"></label></p>';
-		echo '<p><label>' . esc_html__( 'Régimen fiscal', 'facturacion-cfdi' );
-		self::select( 'fcfdi_regimen_fiscal', FCFDI_Checkout::regimenes(), $val( 'regimen_fiscal' ) );
-		echo '</label></p>';
-		echo '<p><label>' . esc_html__( 'Uso de CFDI', 'facturacion-cfdi' );
-		self::select( 'fcfdi_uso_cfdi', FCFDI_Checkout::usos_cfdi(), $val( 'uso_cfdi' ) );
-		echo '</label></p>';
-		echo '<p><button type="submit" class="button" name="fcfdi_guardar_perfil" value="1">' . esc_html__( 'Guardar perfil fiscal', 'facturacion-cfdi' ) . '</button></p>';
+		self::campo_texto( 'fcfdi_rfc', __( 'RFC', 'facturacion-cfdi' ), $val( 'rfc' ) );
+		self::campo_texto( 'fcfdi_razon_social', __( 'Razón social', 'facturacion-cfdi' ), $val( 'razon_social' ) );
+		self::campo_texto( 'fcfdi_cp', __( 'Código postal fiscal', 'facturacion-cfdi' ), $val( 'cp' ) );
+		self::campo_select( 'fcfdi_regimen_fiscal', __( 'Régimen fiscal', 'facturacion-cfdi' ), FCFDI_Checkout::regimenes(), $val( 'regimen_fiscal' ) );
+		self::campo_select( 'fcfdi_uso_cfdi', __( 'Uso de CFDI', 'facturacion-cfdi' ), FCFDI_Checkout::usos_cfdi(), $val( 'uso_cfdi' ) );
+		echo '<p><button type="submit" class="button woocommerce-Button" name="fcfdi_guardar_perfil" value="1">' . esc_html__( 'Guardar perfil fiscal', 'facturacion-cfdi' ) . '</button></p>';
 		echo '</form><hr>';
 	}
 
 	/**
-	 * Imprime un <select> simple.
+	 * Campo de texto como form-row de WooCommerce (hereda los estilos del tema/tienda).
 	 *
-	 * @param string $name    Nombre.
-	 * @param array  $opciones Mapa value=>label.
-	 * @param string $sel     Valor seleccionado.
+	 * @param string $name     Nombre/id del campo.
+	 * @param string $label    Etiqueta.
+	 * @param string $value    Valor (sin escapar; se escapa aquí).
+	 * @param bool   $required Si es obligatorio.
 	 */
-	private static function select( $name, $opciones, $sel ) {
-		echo '<br><select name="' . esc_attr( $name ) . '"><option value="">' . esc_html__( 'Selecciona…', 'facturacion-cfdi' ) . '</option>';
-		foreach ( $opciones as $value => $label ) {
+	private static function campo_texto( $name, $label, $value, $required = false ) {
+		printf(
+			'<p class="woocommerce-form-row form-row form-row-wide"><label for="%1$s">%2$s</label>'
+			. '<input type="text" class="woocommerce-Input woocommerce-Input--text input-text" name="%1$s" id="%1$s" value="%3$s"%4$s></p>',
+			esc_attr( $name ),
+			esc_html( $label ),
+			esc_attr( $value ),
+			$required ? ' required' : ''
+		);
+	}
+
+	/**
+	 * Campo <select> como form-row de WooCommerce.
+	 *
+	 * @param string $name     Nombre/id.
+	 * @param string $label    Etiqueta.
+	 * @param array  $opciones Mapa value=>label.
+	 * @param string $sel      Valor seleccionado (sin escapar).
+	 * @param bool   $required Si es obligatorio.
+	 */
+	private static function campo_select( $name, $label, $opciones, $sel, $required = false ) {
+		printf(
+			'<p class="woocommerce-form-row form-row form-row-wide"><label for="%1$s">%2$s</label>'
+			. '<select name="%1$s" id="%1$s" class="woocommerce-Input input-text"%3$s>',
+			esc_attr( $name ),
+			esc_html( $label ),
+			$required ? ' required' : ''
+		);
+		echo '<option value="">' . esc_html__( 'Selecciona…', 'facturacion-cfdi' ) . '</option>';
+		foreach ( $opciones as $value => $lbl ) {
 			printf(
 				'<option value="%1$s"%2$s>%3$s</option>',
 				esc_attr( $value ),
 				selected( (string) $value, $sel, false ),
-				esc_html( $label )
+				esc_html( $lbl )
 			);
 		}
-		echo '</select>';
+		echo '</select></p>';
 	}
 
 	/**
@@ -317,7 +341,7 @@ class FCFDI_Cliente {
 			if ( '' === $v ) {
 				$v = get_user_meta( $user_id, 'fcfdi_perfil_' . $campo, true );
 			}
-			return esc_attr( (string) $v );
+			return (string) $v;
 		};
 
 		echo '<section class="fcfdi-solicitar"><h2>' . esc_html( $titulo ) . '</h2>';
@@ -326,20 +350,16 @@ class FCFDI_Cliente {
 		} else {
 			echo '<p>' . esc_html__( 'Captura tus datos fiscales para generar el CFDI de este pedido.', 'facturacion-cfdi' ) . '</p>';
 		}
-		echo '<form method="post" action="' . esc_url( admin_url( 'admin-post.php' ) ) . '">';
+		echo '<form method="post" action="' . esc_url( admin_url( 'admin-post.php' ) ) . '" class="woocommerce-EditAccountForm">';
 		echo '<input type="hidden" name="action" value="' . esc_attr( self::ACTION ) . '">';
 		echo '<input type="hidden" name="order_id" value="' . esc_attr( $order->get_id() ) . '">';
 		wp_nonce_field( self::ACTION . '_' . $order->get_id() );
-		echo '<p><label>' . esc_html__( 'RFC', 'facturacion-cfdi' ) . '<br><input type="text" name="fcfdi_rfc" value="' . $pref( 'rfc', '_fcfdi_rfc' ) . '" required></label></p>';
-		echo '<p><label>' . esc_html__( 'Razón social', 'facturacion-cfdi' ) . '<br><input type="text" name="fcfdi_razon_social" value="' . $pref( 'razon_social', '_fcfdi_razon_social' ) . '" required></label></p>';
-		echo '<p><label>' . esc_html__( 'Código postal fiscal', 'facturacion-cfdi' ) . '<br><input type="text" name="fcfdi_cp" value="' . $pref( 'cp', '_fcfdi_cp' ) . '" required></label></p>';
-		echo '<p><label>' . esc_html__( 'Régimen fiscal', 'facturacion-cfdi' );
-		self::select( 'fcfdi_regimen_fiscal', FCFDI_Checkout::regimenes(), $pref( 'regimen_fiscal', '_fcfdi_regimen_fiscal' ) );
-		echo '</label></p>';
-		echo '<p><label>' . esc_html__( 'Uso de CFDI', 'facturacion-cfdi' );
-		self::select( 'fcfdi_uso_cfdi', FCFDI_Checkout::usos_cfdi(), $pref( 'uso_cfdi', '_fcfdi_uso_cfdi' ) );
-		echo '</label></p>';
-		echo '<p><button type="submit" class="button">' . esc_html__( 'Solicitar factura', 'facturacion-cfdi' ) . '</button></p>';
+		self::campo_texto( 'fcfdi_rfc', __( 'RFC', 'facturacion-cfdi' ), $pref( 'rfc', '_fcfdi_rfc' ), true );
+		self::campo_texto( 'fcfdi_razon_social', __( 'Razón social', 'facturacion-cfdi' ), $pref( 'razon_social', '_fcfdi_razon_social' ), true );
+		self::campo_texto( 'fcfdi_cp', __( 'Código postal fiscal', 'facturacion-cfdi' ), $pref( 'cp', '_fcfdi_cp' ), true );
+		self::campo_select( 'fcfdi_regimen_fiscal', __( 'Régimen fiscal', 'facturacion-cfdi' ), FCFDI_Checkout::regimenes(), $pref( 'regimen_fiscal', '_fcfdi_regimen_fiscal' ), true );
+		self::campo_select( 'fcfdi_uso_cfdi', __( 'Uso de CFDI', 'facturacion-cfdi' ), FCFDI_Checkout::usos_cfdi(), $pref( 'uso_cfdi', '_fcfdi_uso_cfdi' ), true );
+		echo '<p><button type="submit" class="button woocommerce-Button">' . esc_html__( 'Solicitar factura', 'facturacion-cfdi' ) . '</button></p>';
 		echo '</form></section>';
 	}
 
