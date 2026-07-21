@@ -36,6 +36,14 @@ class FCFDI_Cliente {
 		add_action( 'woocommerce_store_api_checkout_order_processed', array( __CLASS__, 'guardar_perfil_de_pedido' ) );
 		add_filter( 'woocommerce_checkout_get_value', array( __CLASS__, 'autorrelleno' ), 10, 2 );
 
+		// C2 (bloques): autorrelleno del checkout de bloques con el hook soportado de
+		// WooCommerce para valores por defecto de additional checkout fields. Namespace
+		// 'facturacion-cfdi' (FCFDI_Blocks::NS); slugs con guion.
+		foreach ( array_keys( self::PERFIL ) as $campo ) {
+			$slug = str_replace( '_', '-', $campo );
+			add_filter( 'woocommerce_get_default_value_for_facturacion-cfdi/' . $slug, array( __CLASS__, 'default_bloques' ), 10, 3 );
+		}
+
 		// C4: formulario "solicitar factura después de comprar" + su envío.
 		add_action( 'woocommerce_order_details_after_order_table', array( __CLASS__, 'form_solicitar' ), 20 );
 		add_action( 'admin_post_' . self::ACTION, array( __CLASS__, 'procesar_solicitud' ) );
@@ -297,6 +305,31 @@ class FCFDI_Cliente {
 		}
 		$perfil = get_user_meta( $user_id, 'fcfdi_perfil_' . $campo, true );
 		return '' !== $perfil ? $perfil : $valor;
+	}
+
+	/**
+	 * Valor por defecto de un campo fiscal en el checkout de BLOQUES, tomado del perfil
+	 * guardado. Enganchado a `woocommerce_get_default_value_for_facturacion-cfdi/{slug}`.
+	 *
+	 * @param mixed  $default   Valor por defecto actual (normalmente null).
+	 * @param string $group     Grupo del campo.
+	 * @param mixed  $wc_object Cliente/pedido en contexto.
+	 * @return mixed
+	 */
+	public static function default_bloques( $default, $group = '', $wc_object = null ) {
+		$user_id = get_current_user_id();
+		if ( ! $user_id ) {
+			return $default;
+		}
+		// El hook actual trae el slug tras la última barra: facturacion-cfdi/<slug>.
+		$hook = current_filter();
+		$slug = substr( $hook, strrpos( $hook, '/' ) + 1 );
+		$campo = str_replace( '-', '_', $slug );
+		if ( ! array_key_exists( $campo, self::PERFIL ) ) {
+			return $default;
+		}
+		$perfil = get_user_meta( $user_id, 'fcfdi_perfil_' . $campo, true );
+		return '' !== $perfil ? $perfil : $default;
 	}
 
 	/**
