@@ -88,47 +88,48 @@ class FCFDI_My_Account {
 			return;
 		}
 
-		echo '<section class="fcfdi-factura"><h2>' . esc_html__( 'Factura (CFDI)', 'facturacion-cfdi' ) . '</h2>';
+		echo '<section class="fcfdi-factura woocommerce-order-fcfdi"><h2>' . esc_html__( 'Factura (CFDI)', 'facturacion-cfdi' ) . '</h2>';
 
 		if ( 'timbrada' === $estatus ) {
-			$uuid = $order->get_meta( '_fcfdi_uuid' );
-			echo '<p>' . esc_html__( 'UUID:', 'facturacion-cfdi' ) . ' <code>' . esc_html( $uuid ) . '</code></p>';
-
-			$xml = self::url_descarga( $order->get_id(), 'xml' );
-			$pdf = self::url_descarga( $order->get_id(), 'pdf' );
-			echo '<p>';
-			echo '<a class="button" href="' . esc_url( $pdf ) . '">' . esc_html__( 'Descargar PDF', 'facturacion-cfdi' ) . '</a> ';
-			echo '<a class="button" href="' . esc_url( $xml ) . '">' . esc_html__( 'Descargar XML', 'facturacion-cfdi' ) . '</a>';
-			echo '</p>';
+			echo '<p>' . esc_html__( 'UUID:', 'facturacion-cfdi' ) . ' <code>' . esc_html( $order->get_meta( '_fcfdi_uuid' ) ) . '</code></p>';
+			self::botones_descarga( $order->get_id() );
 		} elseif ( 'cancelada' === $estatus ) {
 			// El SAT obliga a conservar el CFDI cancelado: se mantiene la descarga.
-			$uuid = $order->get_meta( '_fcfdi_uuid' );
-			echo '<p>' . esc_html__( 'Esta factura fue cancelada ante el SAT. Conserva el comprobante para tus registros.', 'facturacion-cfdi' ) . '</p>';
-			if ( $uuid ) {
-				echo '<p>' . esc_html__( 'UUID:', 'facturacion-cfdi' ) . ' <code>' . esc_html( $uuid ) . '</code></p>';
+			echo '<div class="woocommerce-info">' . esc_html__( 'Esta factura fue cancelada ante el SAT. Conserva el comprobante para tus registros.', 'facturacion-cfdi' ) . '</div>';
+			if ( $order->get_meta( '_fcfdi_uuid' ) ) {
+				echo '<p>' . esc_html__( 'UUID:', 'facturacion-cfdi' ) . ' <code>' . esc_html( $order->get_meta( '_fcfdi_uuid' ) ) . '</code></p>';
 			}
-			$xml = self::url_descarga( $order->get_id(), 'xml' );
-			$pdf = self::url_descarga( $order->get_id(), 'pdf' );
-			echo '<p>';
-			echo '<a class="button" href="' . esc_url( $pdf ) . '">' . esc_html__( 'Descargar PDF', 'facturacion-cfdi' ) . '</a> ';
-			echo '<a class="button" href="' . esc_url( $xml ) . '">' . esc_html__( 'Descargar XML', 'facturacion-cfdi' ) . '</a>';
-			echo '</p>';
+			self::botones_descarga( $order->get_id() );
 		} elseif ( 'error' === $estatus ) {
 			// Muestra el motivo real (mapeado a lenguaje claro) en vez de un genérico.
 			$guardado = (string) $order->get_meta( '_fcfdi_error' );
 			$codigo   = ( false !== strpos( $guardado, ':' ) ) ? trim( strstr( $guardado, ':', true ) ) : '';
 			$motivo   = class_exists( 'FCFDI_Checkout' ) ? FCFDI_Checkout::mensaje_error( $codigo ) : '';
-			echo '<p>' . esc_html__( 'No pudimos generar tu factura automáticamente.', 'facturacion-cfdi' );
+			$aviso    = __( 'No pudimos generar tu factura automáticamente.', 'facturacion-cfdi' );
 			if ( $motivo ) {
-				echo ' ' . esc_html( $motivo );
+				$aviso .= ' ' . $motivo;
 			}
-			echo '</p>';
-			echo '<p>' . esc_html__( 'Tu pago está registrado. Contacta a la tienda para completar tu factura.', 'facturacion-cfdi' ) . '</p>';
+			echo '<div class="woocommerce-error" role="alert">' . esc_html( $aviso ) . '</div>';
+			echo '<p>' . esc_html__( 'Tu pago está registrado. Corrige tus datos abajo para volver a intentar tu factura.', 'facturacion-cfdi' ) . '</p>';
 		} else {
-			echo '<p>' . esc_html__( 'Tu factura se está generando. Estará disponible en unos minutos.', 'facturacion-cfdi' ) . '</p>';
+			echo '<div class="woocommerce-info">' . esc_html__( 'Tu factura se está generando. Estará disponible en unos minutos.', 'facturacion-cfdi' ) . '</div>';
 		}
 
 		echo '</section>';
+	}
+
+	/**
+	 * Imprime los botones de descarga PDF/XML del CFDI, con estilo de WooCommerce.
+	 *
+	 * @param int $order_id Id del pedido.
+	 */
+	private static function botones_descarga( $order_id ) {
+		$pdf = self::url_descarga( $order_id, 'pdf' );
+		$xml = self::url_descarga( $order_id, 'xml' );
+		echo '<p>';
+		echo '<a class="woocommerce-button button" href="' . esc_url( $pdf ) . '">' . esc_html__( 'Descargar PDF', 'facturacion-cfdi' ) . '</a> ';
+		echo '<a class="woocommerce-button button" href="' . esc_url( $xml ) . '">' . esc_html__( 'Descargar XML', 'facturacion-cfdi' ) . '</a>';
+		echo '</p>';
 	}
 
 	/**
