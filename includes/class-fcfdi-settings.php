@@ -17,6 +17,28 @@ class FCFDI_Settings {
 		add_action( 'admin_menu', array( __CLASS__, 'menu' ) );
 		add_action( 'admin_init', array( __CLASS__, 'register' ) );
 		add_action( 'wp_ajax_fcfdi_probar_conexion', array( __CLASS__, 'ajax_probar_conexion' ) );
+		add_action( 'admin_notices', array( __CLASS__, 'aviso_sin_configurar' ) );
+	}
+
+	/**
+	 * Aviso persistente si el plugin está activo pero sin configurar: sin URL/token el
+	 * plugin NO valida ni factura y lo hace en silencio (fail-open). Una mala config en
+	 * producción desactivaría la facturación sin señal; este banner la hace visible.
+	 * Se muestra sólo a quien puede gestionar WooCommerce y no en la propia pantalla de
+	 * ajustes (ahí el formulario ya es evidente).
+	 */
+	public static function aviso_sin_configurar() {
+		if ( ! current_user_can( 'manage_woocommerce' ) || self::esta_configurado() ) {
+			return;
+		}
+		$screen = function_exists( 'get_current_screen' ) ? get_current_screen() : null;
+		if ( $screen && isset( $screen->id ) && false !== strpos( $screen->id, 'fcfdi-settings' ) ) {
+			return;
+		}
+		$url = admin_url( 'admin.php?page=fcfdi-settings' );
+		echo '<div class="notice notice-warning"><p><strong>' . esc_html__( 'Facturación CFDI', 'facturacion-cfdi' ) . ':</strong> '
+			. esc_html__( 'el plugin está activo pero sin configurar (falta la URL del puente o el token). Mientras tanto NO se validan datos fiscales en el checkout ni se generan CFDI.', 'facturacion-cfdi' )
+			. ' <a href="' . esc_url( $url ) . '">' . esc_html__( 'Configurar ahora', 'facturacion-cfdi' ) . '</a>.</p></div>';
 	}
 
 	/**

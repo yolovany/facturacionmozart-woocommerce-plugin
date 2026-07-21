@@ -23,6 +23,36 @@ class FCFDI_Admin_Orders {
 		add_filter( 'woocommerce_order_actions', array( __CLASS__, 'accion' ) );
 		add_action( 'woocommerce_order_action_fcfdi_reintentar', array( __CLASS__, 'reintentar' ) );
 		add_action( 'woocommerce_order_action_fcfdi_cancelar', array( __CLASS__, 'cancelar' ) );
+		add_action( 'woocommerce_order_action_fcfdi_pedir_correccion', array( __CLASS__, 'pedir_correccion' ) );
+	}
+
+	/**
+	 * Códigos de error del puente que el CLIENTE puede corregir por sí mismo (dato fiscal
+	 * mal capturado), a diferencia de fallos de infra o de negocio no accionables.
+	 */
+	const CODIGOS_CORREGIBLES = array(
+		'RFC_FALTANTE',
+		'RFC_FORMATO',
+		'REGIMEN_FALTANTE',
+		'REGIMEN_INVALIDO',
+		'CP_FALTANTE',
+		'CP_FORMATO',
+		'USO_CFDI_FALTANTE',
+		'USO_CFDI_INCOMPATIBLE',
+		'CFDI40147',
+		'CFDI40157',
+		'SIN_RECEPTOR',
+	);
+
+	/**
+	 * Extrae el código de error guardado (formato "CODIGO: mensaje").
+	 *
+	 * @param WC_Order $order Pedido.
+	 * @return string
+	 */
+	private static function codigo_error( $order ) {
+		$guardado = (string) $order->get_meta( '_fcfdi_error' );
+		return ( false !== strpos( $guardado, ':' ) ) ? trim( strstr( $guardado, ':', true ) ) : $guardado;
 	}
 
 	/**
@@ -94,6 +124,10 @@ class FCFDI_Admin_Orders {
 				$acciones['fcfdi_cancelar'] = __( 'Cancelar CFDI ante el SAT', 'facturacion-cfdi' );
 			} elseif ( 'cancelada' !== $estatus ) {
 				$acciones['fcfdi_reintentar'] = __( 'Reintentar facturación CFDI', 'facturacion-cfdi' );
+				// Sólo ofrece "pedir corrección" si el fallo es un dato que el cliente arregla.
+				if ( 'error' === $estatus && in_array( self::codigo_error( $theorder ), self::CODIGOS_CORREGIBLES, true ) ) {
+					$acciones['fcfdi_pedir_correccion'] = __( 'Pedir al cliente corregir datos fiscales', 'facturacion-cfdi' );
+				}
 			}
 		}
 		return $acciones;
@@ -125,5 +159,51 @@ class FCFDI_Admin_Orders {
 		if ( class_exists( 'FCFDI_Order_Handler' ) ) {
 			FCFDI_Order_Handler::on_pagado( $order->get_id() );
 		}
+	}
+
+	/**
+	 * Envía al cliente un correo pidiéndole corregir sus datos fiscales, con el motivo
+	 * legible del rechazo y un enlace al pedido donde puede reingresarlos y re-solicitar
+	 * la factura. Marca el pedido para permitir la corrección desde "Mi cuenta".
+	 *
+	 * @param WC_Order $order Pedido.
+	 */
+	public static function pedir_correccion( $order ) {
+		$codigo = self::codigo_error( $order );
+		$motivo = class_exists( 'FCFDI_Checkout' )
+			? FCFDI_Checkout::mensaje_error( $codigo )
+			: __( 'Revisa tus datos fiscales.', 'facturacion-cfdi' );
+
+		// Habilita el formulario de corrección en la vista de pedido del cliente.
+		$order->update_meta_data( '_fcfdi_correccion_solicitada', 'si' );
+		$order->save();
+
+		$para  = $order->get_billing_email();
+		$url   = $order->get_view_order_url();
+		$tienda = get_bloginfo( 'name' );
+		$asunto = sprintf(
+			/* translators: 1: nombre tienda, 2: número de pedido */
+			__( '[%1$s] Necesitamos corregir los datos de tu factura (pedido #%2$s)', 'facturacion-cfdi' ),
+			$tienda,
+			$order->get_order_number()
+		);
+		$cuerpo = sprintf(
+			/* translators: 1: número de pedido, 2: motivo, 3: URL del pedido */
+			__(
+				"Hola,\n\nTu pago del pedido #%1\$s quedó registrado, pero no pudimos generar tu factura (CFDI) por lo siguiente:\n\n%2\$s\n\nPor favor corrige tus datos fiscales y vuelve a solicitar la factura desde tu pedido:\n%3\$s\n\nGracias.",
+				'facturacion-cfdi'
+			),
+			$order->get_order_number(),
+			$motivo,
+			$url
+		);
+
+		$enviado = $para ? wp_mail( $para, $asunto, $cuerpo ) : false;
+		$order->add_order_note(
+			$enviado
+				/* translators: %s: correo del cliente */
+				? sprintf( __( '✉️ Se pidió al cliente (%s) corregir sus datos fiscales.', 'facturacion-cfdi' ), $para )
+				: __( '⚠️ No se pudo enviar el correo de corrección al cliente.', 'facturacion-cfdi' )
+		);
 	}
 }

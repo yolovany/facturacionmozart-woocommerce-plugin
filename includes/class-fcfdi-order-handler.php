@@ -14,10 +14,21 @@ class FCFDI_Order_Handler {
 
 	const HOOK_ENVIAR    = 'fcfdi_enviar_factura';
 	const HOOK_CONSULTAR = 'fcfdi_consultar_estatus';
-	const MAX_POLLS      = 12;
-	const INTERVALO_POLL = 20;
-	const MAX_ENVIOS     = 5;
-	const INTERVALO_ENVIO = 60;
+
+	/**
+	 * Backoff (segundos por intento) para reenvío ante error de INFRA (red/5xx del puente,
+	 * p.ej. PAC caído). Ventana larga a propósito: un outage no debe escalar a "atención
+	 * manual" en minutos. Con este escalón el último reintento cae ~6 h después del pago.
+	 * El nº de intentos = tamaño del arreglo. Ajustable con el filtro 'fcfdi_backoff_envio'.
+	 */
+	const BACKOFF_ENVIO = array( 60, 300, 900, 1800, 3600, 3600, 7200, 7200 );
+
+	/**
+	 * Backoff (segundos por intento) para el polling de estatus mientras el puente/PAC
+	 * sigue procesando. También con ventana amplia (último poll ~1 h) para timbrados lentos.
+	 * Ajustable con el filtro 'fcfdi_backoff_poll'.
+	 */
+	const BACKOFF_POLL = array( 20, 20, 30, 60, 120, 300, 600, 900, 1800, 3600 );
 
 	public static function init() {
 		// Se factura al confirmarse el pago, no al completar (enviar) el pedido: el
@@ -135,7 +146,7 @@ class FCFDI_Order_Handler {
 			$order->add_order_note( __( 'CFDI encolado en el puente de facturación.', 'facturacion-cfdi' ) );
 
 			as_schedule_single_action(
-				time() + self::INTERVALO_POLL,
+				time() + self::backoff( self::BACKOFF_POLL, 0, 'fcfdi_backoff_poll' ),
 				self::HOOK_CONSULTAR,
 				array( 'order_id' => $order_id ),
 				'facturacion-cfdi'
@@ -157,9 +168,11 @@ class FCFDI_Order_Handler {
 		$intentos = (int) $order->get_meta( '_fcfdi_envio_intentos' ) + 1;
 		$order->update_meta_data( '_fcfdi_envio_intentos', $intentos );
 		$order->update_meta_data( '_fcfdi_estatus', 'reintentando' );
+		$order->update_meta_data( '_fcfdi_error', $motivo ); // Motivo visible mientras se reintenta.
 		$order->save();
 
-		if ( $intentos >= self::MAX_ENVIOS ) {
+		$backoff = self::backoff_schedule( self::BACKOFF_ENVIO, 'fcfdi_backoff_envio' );
+		if ( $intentos >= count( $backoff ) ) {
 			$order->update_meta_data( '_fcfdi_estatus', 'error' );
 			$order->update_meta_data( '_fcfdi_error', $motivo );
 			$order->save();
@@ -169,11 +182,38 @@ class FCFDI_Order_Handler {
 		}
 
 		as_schedule_single_action(
-			time() + self::INTERVALO_ENVIO,
+			time() + self::backoff( self::BACKOFF_ENVIO, $intentos, 'fcfdi_backoff_envio' ),
 			self::HOOK_ENVIAR,
 			array( 'order_id' => $order->get_id() ),
 			'facturacion-cfdi'
 		);
+	}
+
+	/**
+	 * Devuelve el arreglo de backoff (segundos por intento) aplicando su filtro.
+	 *
+	 * @param array  $default Arreglo por defecto.
+	 * @param string $filtro  Nombre del filtro.
+	 * @return array<int>
+	 */
+	private static function backoff_schedule( $default, $filtro ) {
+		$sched = apply_filters( $filtro, $default );
+		return ( is_array( $sched ) && ! empty( $sched ) ) ? array_values( $sched ) : $default;
+	}
+
+	/**
+	 * Segundos a esperar antes del intento nº $intento (0-based) según el backoff.
+	 * Si $intento excede el arreglo, usa el último escalón (meseta).
+	 *
+	 * @param array  $default Backoff por defecto.
+	 * @param int    $intento Índice del intento (0-based).
+	 * @param string $filtro  Filtro para overridear el backoff.
+	 * @return int
+	 */
+	private static function backoff( $default, $intento, $filtro ) {
+		$sched = self::backoff_schedule( $default, $filtro );
+		$idx   = min( max( 0, (int) $intento ), count( $sched ) - 1 );
+		return (int) $sched[ $idx ];
 	}
 
 	/**
@@ -239,7 +279,8 @@ class FCFDI_Order_Handler {
 		$order->update_meta_data( '_fcfdi_poll_intentos', $intentos );
 		$order->save();
 
-		if ( $intentos >= self::MAX_POLLS ) {
+		$backoff = self::backoff_schedule( self::BACKOFF_POLL, 'fcfdi_backoff_poll' );
+		if ( $intentos >= count( $backoff ) ) {
 			$order->update_meta_data( '_fcfdi_estatus', 'error' );
 			$order->update_meta_data( '_fcfdi_error', $mensaje );
 			$order->save();
@@ -249,7 +290,7 @@ class FCFDI_Order_Handler {
 		}
 
 		as_schedule_single_action(
-			time() + self::INTERVALO_POLL,
+			time() + self::backoff( self::BACKOFF_POLL, $intentos, 'fcfdi_backoff_poll' ),
 			self::HOOK_CONSULTAR,
 			array( 'order_id' => $order->get_id() ),
 			'facturacion-cfdi'
