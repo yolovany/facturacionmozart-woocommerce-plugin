@@ -50,9 +50,36 @@ class FCFDI_Order_Handler {
 		}
 
 		$order->update_meta_data( '_fcfdi_estatus', 'encolada' );
-		$order->save();
+
+		// El cliente pidió factura: el pedido no avanza como completado hasta que el
+		// puente confirme el timbrado. Se retiene en "en espera" para que el flujo de
+		// cumplimiento (envío, acceso a descargas, etc.) no trate el pedido como cerrado
+		// con una factura pendiente o fallida.
+		if ( $requiere && $order->has_status( 'completed' ) ) {
+			$order->update_meta_data( '_fcfdi_retener_completado', 'si' );
+			$order->save();
+			$order->update_status( 'on-hold', __( 'Retenido: facturación CFDI en proceso.', 'facturacion-cfdi' ) );
+		} else {
+			$order->save();
+		}
 
 		as_enqueue_async_action( self::HOOK_ENVIAR, array( 'order_id' => $order_id ), 'facturacion-cfdi' );
+	}
+
+	/**
+	 * Si el pedido se retuvo esperando el CFDI, lo regresa a completado.
+	 *
+	 * @param WC_Order $order Pedido.
+	 */
+	private static function liberar_si_retenido( $order ) {
+		if ( 'si' !== $order->get_meta( '_fcfdi_retener_completado' ) ) {
+			return;
+		}
+		$order->update_meta_data( '_fcfdi_retener_completado', '' );
+		$order->save();
+		if ( $order->has_status( 'on-hold' ) ) {
+			$order->update_status( 'completed', __( 'CFDI timbrado: se libera el pedido.', 'facturacion-cfdi' ) );
+		}
 	}
 
 	/**
@@ -118,6 +145,7 @@ class FCFDI_Order_Handler {
 			$order->update_meta_data( '_fcfdi_error', $motivo );
 			$order->save();
 			$order->add_order_note( '⚠️ ' . sprintf( __( 'No se pudo enviar al puente tras varios intentos: %s', 'facturacion-cfdi' ), $motivo ) );
+			self::escalar_si_retenido( $order, $motivo );
 			return;
 		}
 
@@ -168,6 +196,7 @@ class FCFDI_Order_Handler {
 					isset( $body['uuid'] ) ? $body['uuid'] : ''
 				)
 			);
+			self::liberar_si_retenido( $order );
 			return;
 		}
 
@@ -196,6 +225,7 @@ class FCFDI_Order_Handler {
 			$order->update_meta_data( '_fcfdi_error', $mensaje );
 			$order->save();
 			$order->add_order_note( '⚠️ ' . $mensaje );
+			self::escalar_si_retenido( $order, $mensaje );
 			return;
 		}
 
@@ -221,6 +251,41 @@ class FCFDI_Order_Handler {
 		$order->update_meta_data( '_fcfdi_error', $codigo . ': ' . $mensaje );
 		$order->save();
 		$order->add_order_note( '⚠️ ' . sprintf( __( 'Error de facturación (%1$s): %2$s', 'facturacion-cfdi' ), $codigo, $mensaje ) );
+		self::escalar_si_retenido( $order, $codigo . ': ' . $mensaje );
+	}
+
+	/**
+	 * Si el pedido está retenido esperando CFDI y el timbrado ya no puede completarse
+	 * solo (dato de negocio incorrecto o intentos agotados), permanece en "en espera"
+	 * (nunca se libera solo) y se avisa al administrador para que lo resuelva a mano.
+	 *
+	 * @param WC_Order $order  Pedido.
+	 * @param string   $motivo Motivo del fallo.
+	 */
+	private static function escalar_si_retenido( $order, $motivo ) {
+		if ( 'si' !== $order->get_meta( '_fcfdi_retener_completado' ) ) {
+			return;
+		}
+		$order->add_order_note(
+			'🚨 ' . sprintf(
+				/* translators: %s: motivo del fallo */
+				__( 'Pedido retenido en espera de CFDI. Requiere atención manual: %s', 'facturacion-cfdi' ),
+				$motivo
+			)
+		);
+		/**
+		 * Permite conectar una alerta (correo, Slack, etc.) cuando un pedido queda
+		 * retenido sin poder facturarse automáticamente.
+		 *
+		 * @param WC_Order $order  Pedido.
+		 * @param string   $motivo Motivo del fallo.
+		 */
+		do_action( 'fcfdi_facturacion_retenida', $order, $motivo );
+		wp_mail(
+			get_option( 'admin_email' ),
+			sprintf( __( '[%1$s] Pedido #%2$s retenido: falló la facturación CFDI', 'facturacion-cfdi' ), get_bloginfo( 'name' ), $order->get_order_number() ),
+			sprintf( __( "El pedido #%1\$s pidió factura pero el timbrado no se completó y quedó retenido (en espera) en vez de completado.\n\nMotivo: %2\$s\n\nRevísalo en el admin de WooCommerce.", 'facturacion-cfdi' ), $order->get_order_number(), $motivo )
+		);
 	}
 
 	/**

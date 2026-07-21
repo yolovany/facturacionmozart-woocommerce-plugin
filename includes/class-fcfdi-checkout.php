@@ -17,39 +17,96 @@ class FCFDI_Checkout {
 		add_action( 'woocommerce_checkout_update_order_meta', array( __CLASS__, 'guardar' ) );
 	}
 
+	const CACHE_KEY = 'fcfdi_catalogo_regimen_uso';
+	const CACHE_TTL = 12 * HOUR_IN_SECONDS;
+
+	/** Catálogo mínimo de respaldo si el puente no responde (el checkout no debe quedar sin opciones). */
+	const USOS_RESPALDO = array(
+		'G01' => 'G01 - Adquisición de mercancías',
+		'G03' => 'G03 - Gastos en general',
+		'S01' => 'S01 - Sin efectos fiscales',
+	);
+
+	const REGIMENES_RESPALDO = array(
+		'605' => '605 - Sueldos y salarios',
+		'612' => '612 - Personas Físicas con Actividades Empresariales y Profesionales',
+		'626' => '626 - Régimen Simplificado de Confianza (RESICO)',
+		'601' => '601 - General de Ley Personas Morales',
+	);
+
 	/**
-	 * Catálogo mínimo de usos de CFDI más comunes en e-commerce.
+	 * Catálogo régimen/uso y matriz de compatibilidad, consultado al puente y cacheado.
+	 * Fuente de verdad: la misma matriz SAT que usa el puente para validar el timbrado,
+	 * así el checkout no deja capturar combinaciones que luego rechazaría el backend.
+	 *
+	 * @return array{regimenes:array,usos:array,matriz:array}
+	 */
+	public static function catalogo() {
+		$cache = get_transient( self::CACHE_KEY );
+		if ( is_array( $cache ) ) {
+			return $cache;
+		}
+
+		$datos = array(
+			'regimenes' => self::REGIMENES_RESPALDO,
+			'usos'      => self::USOS_RESPALDO,
+			'matriz'    => array(),
+		);
+
+		if ( class_exists( 'FCFDI_Settings' ) && FCFDI_Settings::esta_configurado() ) {
+			$client = new FCFDI_Api_Client();
+			$res    = $client->catalogo_regimen_uso();
+			if ( ! is_wp_error( $res ) && 200 === (int) $res['code'] ) {
+				$body = $res['body'];
+				if ( ! empty( $body['regimenes'] ) && ! empty( $body['usos'] ) ) {
+					$datos = array(
+						'regimenes' => $body['regimenes'],
+						'usos'      => $body['usos'],
+						'matriz'    => isset( $body['matriz'] ) ? $body['matriz'] : array(),
+					);
+				}
+			}
+		}
+
+		// Cache corta si vino del respaldo (para reintentar pronto), larga si vino del puente.
+		$ttl = empty( $datos['matriz'] ) ? 5 * MINUTE_IN_SECONDS : self::CACHE_TTL;
+		set_transient( self::CACHE_KEY, $datos, $ttl );
+		return $datos;
+	}
+
+	/**
+	 * Usos de CFDI disponibles.
 	 *
 	 * @return array
 	 */
 	public static function usos_cfdi() {
-		return array(
-			'G01' => 'G01 - Adquisición de mercancías',
-			'G03' => 'G03 - Gastos en general',
-			'I08' => 'I08 - Otra maquinaria y equipo',
-			'S01' => 'S01 - Sin efectos fiscales',
-			'P01' => 'P01 - Por definir',
-		);
+		return self::catalogo()['usos'];
 	}
 
 	/**
-	 * Catálogo de regímenes fiscales más usados por receptores.
+	 * Regímenes fiscales disponibles.
 	 *
 	 * @return array
 	 */
 	public static function regimenes() {
-		return array(
-			'605' => '605 - Sueldos y salarios',
-			'606' => '606 - Arrendamiento',
-			'608' => '608 - Demás ingresos',
-			'612' => '612 - Personas Físicas con Actividades Empresariales y Profesionales',
-			'614' => '614 - Ingresos por intereses',
-			'616' => '616 - Sin obligaciones fiscales',
-			'621' => '621 - Incorporación Fiscal',
-			'626' => '626 - Régimen Simplificado de Confianza (RESICO)',
-			'601' => '601 - General de Ley Personas Morales',
-			'603' => '603 - Personas Morales con Fines no Lucrativos',
-		);
+		return self::catalogo()['regimenes'];
+	}
+
+	/**
+	 * True si el uso de CFDI es válido para el régimen fiscal, según la matriz cacheada.
+	 * Si la matriz no está disponible (puente caído), no bloquea aquí — el puente
+	 * hará la validación autoritativa al recibir el pedido.
+	 *
+	 * @param string $uso     Uso de CFDI.
+	 * @param string $regimen Régimen fiscal.
+	 * @return bool
+	 */
+	public static function combo_valido( $uso, $regimen ) {
+		$matriz = self::catalogo()['matriz'];
+		if ( empty( $matriz ) || ! isset( $matriz[ $uso ] ) ) {
+			return true;
+		}
+		return in_array( (string) $regimen, array_map( 'strval', $matriz[ $uso ] ), true );
 	}
 
 	/**
@@ -128,19 +185,52 @@ class FCFDI_Checkout {
 
 		echo '</div></div>';
 
-		// Toggle de visibilidad de los campos según el checkbox.
+		$matriz = wp_json_encode( self::catalogo()['matriz'] );
+		$usos   = wp_json_encode( self::usos_cfdi() );
+
+		// Toggle de visibilidad + filtra Uso de CFDI según el régimen elegido, con la
+		// misma matriz SAT que valida el puente, para no dejar capturar una combinación
+		// que el timbrado rechazaría.
 		?>
 		<script>
 		( function () {
+			var matriz = <?php echo $matriz; ?>;
+			var usosTodos = <?php echo $usos; ?>;
+
 			function sync() {
 				var chk = document.getElementById( 'fcfdi_requiere_factura' );
 				var box = document.getElementById( 'fcfdi-campos' );
 				if ( chk && box ) { box.style.display = chk.checked ? 'block' : 'none'; }
 			}
+
+			function filtrarUsos() {
+				var regimenSel = document.getElementById( 'fcfdi_regimen_fiscal' );
+				var usoSel     = document.getElementById( 'fcfdi_uso_cfdi' );
+				if ( ! regimenSel || ! usoSel ) { return; }
+				var regimen = regimenSel.value;
+				var actual  = usoSel.value;
+
+				while ( usoSel.options.length > 1 ) { usoSel.remove( 1 ); }
+
+				Object.keys( usosTodos ).forEach( function ( clave ) {
+					var permitidos = matriz[ clave ];
+					var ok = ! regimen || ! permitidos || permitidos.indexOf( regimen ) !== -1;
+					if ( ok ) {
+						var opt = document.createElement( 'option' );
+						opt.value = clave;
+						opt.textContent = usosTodos[ clave ];
+						if ( clave === actual ) { opt.selected = true; }
+						usoSel.appendChild( opt );
+					}
+				} );
+			}
+
 			document.addEventListener( 'change', function ( e ) {
 				if ( e.target && e.target.id === 'fcfdi_requiere_factura' ) { sync(); }
+				if ( e.target && e.target.id === 'fcfdi_regimen_fiscal' ) { filtrarUsos(); }
 			} );
 			sync();
+			filtrarUsos();
 		} )();
 		</script>
 		<?php
@@ -176,6 +266,9 @@ class FCFDI_Checkout {
 		}
 		if ( '' === $uso ) {
 			wc_add_notice( __( 'Selecciona el uso de CFDI.', 'facturacion-cfdi' ), 'error' );
+		}
+		if ( '' !== $uso && '' !== $regimen && ! self::combo_valido( $uso, $regimen ) ) {
+			wc_add_notice( __( 'El uso de CFDI no es válido para el régimen fiscal seleccionado.', 'facturacion-cfdi' ), 'error' );
 		}
 	}
 

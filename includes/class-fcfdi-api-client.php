@@ -127,6 +127,26 @@ class FCFDI_Api_Client {
 	}
 
 	/**
+	 * Consulta el catálogo régimen/uso de CFDI y su matriz de compatibilidad.
+	 *
+	 * @return array|WP_Error
+	 */
+	public function catalogo_regimen_uso() {
+		$root = preg_replace( '#/facturas/?$#', '', $this->base_url );
+		$res  = wp_remote_get(
+			$root . '/catalogos/regimen-uso',
+			array(
+				'timeout' => 20,
+				'headers' => array(
+					'Authorization' => 'Bearer ' . $this->token,
+					'Accept'        => 'application/json',
+				),
+			)
+		);
+		return $this->normalizar( $res );
+	}
+
+	/**
 	 * Descarga el XML o PDF desde el puente (autenticado con el token).
 	 *
 	 * @param string $factura_id Id.

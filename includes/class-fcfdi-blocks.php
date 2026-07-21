@@ -57,6 +57,9 @@ class FCFDI_Blocks {
 		if ( '' === $uso ) {
 			$errors->add( 'fcfdi_uso', __( 'Selecciona el uso de CFDI.', 'facturacion-cfdi' ) );
 		}
+		if ( '' !== $uso && '' !== $regimen && class_exists( 'FCFDI_Checkout' ) && ! FCFDI_Checkout::combo_valido( $uso, $regimen ) ) {
+			$errors->add( 'fcfdi_uso_regimen', __( 'El uso de CFDI no es válido para el régimen fiscal seleccionado.', 'facturacion-cfdi' ) );
+		}
 
 		return $errors;
 	}
