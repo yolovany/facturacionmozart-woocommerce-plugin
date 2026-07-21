@@ -58,7 +58,24 @@ class FCFDI_Blocks {
 			$errors->add( 'fcfdi_uso', __( 'Selecciona el uso de CFDI.', 'facturacion-cfdi' ) );
 		}
 		if ( '' !== $uso && '' !== $regimen && class_exists( 'FCFDI_Checkout' ) && ! FCFDI_Checkout::combo_valido( $uso, $regimen ) ) {
-			$errors->add( 'fcfdi_uso_regimen', __( 'El uso de CFDI no es válido para el régimen fiscal seleccionado.', 'facturacion-cfdi' ) );
+			$errors->add( 'fcfdi_uso_regimen', FCFDI_Checkout::mensaje_error( 'USO_CFDI_INCOMPATIBLE' ) );
+		}
+
+		// Pre-flight contra el puente sólo si el formato local pasó. Corre en la validación
+		// de campos del Store API: antes de crear el pedido y cobrar, el carrito no se pierde.
+		if ( ! $errors->has_errors() && class_exists( 'FCFDI_Checkout' ) ) {
+			$pref = FCFDI_Checkout::validar_receptor_remoto(
+				array(
+					'rfc'            => $rfc,
+					'razon_social'   => $razon,
+					'regimen_fiscal' => $regimen,
+					'cp'             => $cp,
+					'uso_cfdi'       => $uso,
+				)
+			);
+			if ( ! $pref['ok'] ) {
+				$errors->add( 'fcfdi_receptor', $pref['mensaje'] );
+			}
 		}
 
 		return $errors;

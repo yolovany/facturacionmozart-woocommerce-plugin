@@ -93,6 +93,63 @@ class FCFDI_Checkout {
 	}
 
 	/**
+	 * Traduce un código de error del puente a un mensaje claro y accionable para el cliente.
+	 *
+	 * @param string $codigo   Código del puente (p.ej. USO_CFDI_INCOMPATIBLE).
+	 * @param string $fallback Mensaje del puente si el código no está mapeado.
+	 * @return string
+	 */
+	public static function mensaje_error( $codigo, $fallback = '' ) {
+		$mapa = array(
+			'RFC_FALTANTE'          => __( 'Captura tu RFC para poder facturar.', 'facturacion-cfdi' ),
+			'RFC_FORMATO'           => __( 'El RFC no tiene un formato válido. Revísalo en tu Constancia de Situación Fiscal.', 'facturacion-cfdi' ),
+			'REGIMEN_FALTANTE'      => __( 'Selecciona tu régimen fiscal.', 'facturacion-cfdi' ),
+			'REGIMEN_INVALIDO'      => __( 'El régimen fiscal seleccionado no es válido.', 'facturacion-cfdi' ),
+			'CP_FALTANTE'           => __( 'Captura tu código postal fiscal.', 'facturacion-cfdi' ),
+			'CP_FORMATO'            => __( 'El código postal fiscal debe tener 5 dígitos.', 'facturacion-cfdi' ),
+			'USO_CFDI_FALTANTE'     => __( 'Selecciona el uso de CFDI.', 'facturacion-cfdi' ),
+			'USO_CFDI_INCOMPATIBLE' => __( 'El uso de CFDI no aplica a tu régimen fiscal. Elige uno de la lista.', 'facturacion-cfdi' ),
+			'CFDI40147'             => __( 'Tu RFC y código postal no coinciden con el registro del SAT. Verifica ambos en tu Constancia de Situación Fiscal.', 'facturacion-cfdi' ),
+			'CFDI40157'             => __( 'El régimen fiscal no corresponde a tu RFC ante el SAT. Revisa tu Constancia de Situación Fiscal.', 'facturacion-cfdi' ),
+			'SIN_RECEPTOR'          => __( 'Faltan tus datos fiscales para facturar.', 'facturacion-cfdi' ),
+		);
+		if ( isset( $mapa[ $codigo ] ) ) {
+			return $mapa[ $codigo ];
+		}
+		return $fallback ? $fallback : __( 'No pudimos validar tus datos fiscales. Revísalos e intenta de nuevo.', 'facturacion-cfdi' );
+	}
+
+	/**
+	 * Pre-flight contra el puente: valida los datos fiscales del receptor ANTES de cobrar.
+	 * Si el puente no responde (caído/red), NO bloquea — el timbrado async lo validará
+	 * después (el pedido quedará retenido, no se pierde la venta).
+	 *
+	 * @param array $receptor rfc, razon_social, regimen_fiscal, cp, uso_cfdi.
+	 * @return array{ok:bool,mensaje:string}
+	 */
+	public static function validar_receptor_remoto( $receptor ) {
+		if ( ! class_exists( 'FCFDI_Settings' ) || ! FCFDI_Settings::esta_configurado() ) {
+			return array( 'ok' => true, 'mensaje' => '' );
+		}
+		$client = new FCFDI_Api_Client();
+		$res    = $client->validar_receptor( $receptor );
+
+		// Puente inalcanzable o error de servidor: no bloquear el checkout (fail-open).
+		if ( is_wp_error( $res ) || (int) $res['code'] >= 500 ) {
+			return array( 'ok' => true, 'mensaje' => '' );
+		}
+		if ( 200 === (int) $res['code'] ) {
+			return array( 'ok' => true, 'mensaje' => '' );
+		}
+
+		// 4xx: dato del cliente incorrecto. Traducir a mensaje accionable.
+		$body   = is_array( $res['body'] ) ? $res['body'] : array();
+		$codigo = isset( $body['codigo'] ) ? $body['codigo'] : '';
+		$msg    = self::mensaje_error( $codigo, isset( $body['mensaje'] ) ? $body['mensaje'] : '' );
+		return array( 'ok' => false, 'mensaje' => $msg );
+	}
+
+	/**
 	 * True si el uso de CFDI es válido para el régimen fiscal, según la matriz cacheada.
 	 * Si la matriz no está disponible (puente caído), no bloquea aquí — el puente
 	 * hará la validación autoritativa al recibir el pedido.
@@ -268,7 +325,24 @@ class FCFDI_Checkout {
 			wc_add_notice( __( 'Selecciona el uso de CFDI.', 'facturacion-cfdi' ), 'error' );
 		}
 		if ( '' !== $uso && '' !== $regimen && ! self::combo_valido( $uso, $regimen ) ) {
-			wc_add_notice( __( 'El uso de CFDI no es válido para el régimen fiscal seleccionado.', 'facturacion-cfdi' ), 'error' );
+			wc_add_notice( self::mensaje_error( 'USO_CFDI_INCOMPATIBLE' ), 'error' );
+		}
+
+		// Si el formato local pasó, valida contra el puente (pre-flight, dry-run). Esto
+		// corre en woocommerce_checkout_process: ANTES de cobrar y sin vaciar el carrito.
+		if ( 0 === wc_notice_count( 'error' ) ) {
+			$pref = self::validar_receptor_remoto(
+				array(
+					'rfc'            => $rfc,
+					'razon_social'   => $razon,
+					'regimen_fiscal' => $regimen,
+					'cp'             => $cp,
+					'uso_cfdi'       => $uso,
+				)
+			);
+			if ( ! $pref['ok'] ) {
+				wc_add_notice( $pref['mensaje'], 'error' );
+			}
 		}
 	}
 

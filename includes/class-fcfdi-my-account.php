@@ -91,7 +91,16 @@ class FCFDI_My_Account {
 		} elseif ( 'cancelada' === $estatus ) {
 			echo '<p>' . esc_html__( 'Esta factura fue cancelada ante el SAT.', 'facturacion-cfdi' ) . '</p>';
 		} elseif ( 'error' === $estatus ) {
-			echo '<p>' . esc_html__( 'Hubo un problema al generar la factura. Contacta a la tienda.', 'facturacion-cfdi' ) . '</p>';
+			// Muestra el motivo real (mapeado a lenguaje claro) en vez de un genérico.
+			$guardado = (string) $order->get_meta( '_fcfdi_error' );
+			$codigo   = ( false !== strpos( $guardado, ':' ) ) ? trim( strstr( $guardado, ':', true ) ) : '';
+			$motivo   = class_exists( 'FCFDI_Checkout' ) ? FCFDI_Checkout::mensaje_error( $codigo ) : '';
+			echo '<p>' . esc_html__( 'No pudimos generar tu factura automáticamente.', 'facturacion-cfdi' );
+			if ( $motivo ) {
+				echo ' ' . esc_html( $motivo );
+			}
+			echo '</p>';
+			echo '<p>' . esc_html__( 'Tu pago está registrado. Contacta a la tienda para completar tu factura.', 'facturacion-cfdi' ) . '</p>';
 		} else {
 			echo '<p>' . esc_html__( 'Tu factura se está generando. Estará disponible en unos minutos.', 'facturacion-cfdi' ) . '</p>';
 		}

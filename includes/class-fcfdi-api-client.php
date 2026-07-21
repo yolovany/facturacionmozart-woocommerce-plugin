@@ -127,6 +127,29 @@ class FCFDI_Api_Client {
 	}
 
 	/**
+	 * Pre-flight: valida los datos fiscales del receptor ANTES de cobrar (dry-run, no timbra).
+	 *
+	 * @param array $receptor rfc, razon_social, regimen_fiscal, cp, uso_cfdi.
+	 * @return array|WP_Error  array( 'code' => int, 'body' => array )
+	 */
+	public function validar_receptor( array $receptor ) {
+		$root = preg_replace( '#/?$#', '', $this->base_url );
+		$res  = wp_remote_post(
+			$root . '/validar-receptor',
+			array(
+				'timeout' => 20,
+				'headers' => array(
+					'Authorization' => 'Bearer ' . $this->token,
+					'Content-Type'  => 'application/json',
+					'Accept'        => 'application/json',
+				),
+				'body'    => wp_json_encode( $receptor ),
+			)
+		);
+		return $this->normalizar( $res );
+	}
+
+	/**
 	 * Consulta el catálogo régimen/uso de CFDI y su matriz de compatibilidad.
 	 *
 	 * @return array|WP_Error
