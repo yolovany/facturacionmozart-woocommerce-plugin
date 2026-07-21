@@ -31,6 +31,18 @@ class FCFDI_My_Account {
 	 * @return array
 	 */
 	public static function adjuntar_email( $attachments, $email_id, $order ) {
+		/**
+		 * La entrega del CFDI por correo la hace el puente (.NET) al timbrar, reusando
+		 * el SMTP propio de la empresa (WorkerReenvio). Por eso el adjunto por WordPress
+		 * viene DESACTIVADO por defecto: evita correos duplicados y no depende de que WP
+		 * tenga SMTP configurado. Se puede reactivar con el filtro si se prefiere que
+		 * WooCommerce sea quien entregue el CFDI.
+		 *
+		 * @param bool $activo Si WP debe adjuntar el CFDI a sus correos. Default false.
+		 */
+		if ( ! apply_filters( 'fcfdi_adjuntar_cfdi_email', false ) ) {
+			return $attachments;
+		}
 		if ( ! ( $order instanceof WC_Order ) ) {
 			return $attachments;
 		}
