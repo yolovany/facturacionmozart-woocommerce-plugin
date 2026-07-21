@@ -123,7 +123,7 @@ class FCFDI_Admin_Orders {
 		$order->add_order_note( __( 'Reintento de facturación CFDI solicitado manualmente.', 'facturacion-cfdi' ) );
 
 		if ( class_exists( 'FCFDI_Order_Handler' ) ) {
-			FCFDI_Order_Handler::on_completed( $order->get_id() );
+			FCFDI_Order_Handler::on_pagado( $order->get_id() );
 		}
 	}
 }

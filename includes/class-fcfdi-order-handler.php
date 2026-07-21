@@ -20,17 +20,23 @@ class FCFDI_Order_Handler {
 	const INTERVALO_ENVIO = 60;
 
 	public static function init() {
-		add_action( 'woocommerce_order_status_completed', array( __CLASS__, 'on_completed' ) );
+		// Se factura al confirmarse el pago, no al completar (enviar) el pedido: el
+		// reencuadre PAGADO→FACTURADO→LIBERADO exige factura tras el pago. Los productos
+		// físicos quedan en 'processing' al pagar; los virtuales/descargables saltan
+		// directo a 'completed'. Se enganchan ambos y una guarda evita doble timbrado.
+		add_action( 'woocommerce_order_status_processing', array( __CLASS__, 'on_pagado' ) );
+		add_action( 'woocommerce_order_status_completed', array( __CLASS__, 'on_pagado' ) );
 		add_action( self::HOOK_ENVIAR, array( __CLASS__, 'enviar' ) );
 		add_action( self::HOOK_CONSULTAR, array( __CLASS__, 'consultar' ) );
 	}
 
 	/**
-	 * Al completarse el pedido, encola el envío al puente (si procede y no se hizo ya).
+	 * Al confirmarse el pago (processing o completed), encola el envío al puente
+	 * (si procede y no se hizo ya).
 	 *
 	 * @param int $order_id Id del pedido.
 	 */
-	public static function on_completed( $order_id ) {
+	public static function on_pagado( $order_id ) {
 		if ( ! FCFDI_Settings::esta_configurado() ) {
 			return;
 		}
@@ -38,8 +44,10 @@ class FCFDI_Order_Handler {
 		if ( ! $order ) {
 			return;
 		}
-		// Ya tiene factura o ya está en proceso.
-		if ( $order->get_meta( '_fcfdi_factura_id' ) ) {
+		// Ya tiene factura, o ya se encoló/procesó (guarda anti-duplicado: el pedido
+		// puede pasar por processing y luego completed antes de que el envío async fije
+		// el factura_id). Un estatus 'error' tampoco re-dispara solo: retry es manual.
+		if ( $order->get_meta( '_fcfdi_factura_id' ) || '' !== (string) $order->get_meta( '_fcfdi_estatus' ) ) {
 			return;
 		}
 		// Si no se factura siempre y el cliente no pidió factura, no hacemos nada.
@@ -51,14 +59,21 @@ class FCFDI_Order_Handler {
 
 		$order->update_meta_data( '_fcfdi_estatus', 'encolada' );
 
-		// El cliente pidió factura: el pedido no avanza como completado hasta que el
-		// puente confirme el timbrado. Se retiene en "en espera" para que el flujo de
-		// cumplimiento (envío, acceso a descargas, etc.) no trate el pedido como cerrado
-		// con una factura pendiente o fallida.
-		if ( $requiere && $order->has_status( 'completed' ) ) {
+		// El cliente pidió factura: el pedido no debe salir (envío, acceso a descargas)
+		// hasta que el puente confirme el timbrado. Se retiene en "en espera" y se guarda
+		// el estatus previo (processing/completed) para restaurarlo al liberar.
+		if ( $requiere ) {
+			// Si ya está retenido (p.ej. reintento manual desde el admin), no se pisa el
+			// estatus previo con 'on-hold' ni se re-mueve el pedido: se conserva el estado
+			// real al que debe volver tras timbrar.
+			if ( ! $order->has_status( 'on-hold' ) ) {
+				$order->update_meta_data( '_fcfdi_estatus_previo', $order->get_status() );
+			}
 			$order->update_meta_data( '_fcfdi_retener_completado', 'si' );
 			$order->save();
-			$order->update_status( 'on-hold', __( 'Retenido: facturación CFDI en proceso.', 'facturacion-cfdi' ) );
+			if ( ! $order->has_status( 'on-hold' ) ) {
+				$order->update_status( 'on-hold', __( 'Retenido: facturación CFDI en proceso.', 'facturacion-cfdi' ) );
+			}
 		} else {
 			$order->save();
 		}
@@ -67,7 +82,8 @@ class FCFDI_Order_Handler {
 	}
 
 	/**
-	 * Si el pedido se retuvo esperando el CFDI, lo regresa a completado.
+	 * Si el pedido se retuvo esperando el CFDI, lo regresa a su estatus previo
+	 * (processing si se pagó sin completar, completed si ya venía completado).
 	 *
 	 * @param WC_Order $order Pedido.
 	 */
@@ -75,10 +91,13 @@ class FCFDI_Order_Handler {
 		if ( 'si' !== $order->get_meta( '_fcfdi_retener_completado' ) ) {
 			return;
 		}
+		$previo = (string) $order->get_meta( '_fcfdi_estatus_previo' );
+		$previo = '' !== $previo ? $previo : 'completed';
 		$order->update_meta_data( '_fcfdi_retener_completado', '' );
+		$order->update_meta_data( '_fcfdi_estatus_previo', '' );
 		$order->save();
 		if ( $order->has_status( 'on-hold' ) ) {
-			$order->update_status( 'completed', __( 'CFDI timbrado: se libera el pedido.', 'facturacion-cfdi' ) );
+			$order->update_status( $previo, __( 'CFDI timbrado: se libera el pedido.', 'facturacion-cfdi' ) );
 		}
 	}
 
