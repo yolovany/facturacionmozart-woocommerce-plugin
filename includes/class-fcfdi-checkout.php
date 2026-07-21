@@ -242,52 +242,21 @@ class FCFDI_Checkout {
 
 		echo '</div></div>';
 
-		$matriz = wp_json_encode( self::catalogo()['matriz'] );
-		$usos   = wp_json_encode( self::usos_cfdi() );
-
-		// Toggle de visibilidad + filtra Uso de CFDI según el régimen elegido, con la
-		// misma matriz SAT que valida el puente, para no dejar capturar una combinación
-		// que el timbrado rechazaría.
+		// Sólo muestra/oculta los campos fiscales según el checkbox "Requiero factura".
+		// No se filtra el Uso de CFDI: la validación (local + pre-flight al puente) es la
+		// que rechaza un combo uso/régimen inválido al enviar, con mensaje claro.
 		?>
 		<script>
 		( function () {
-			var matriz = <?php echo $matriz; ?>;
-			var usosTodos = <?php echo $usos; ?>;
-
 			function sync() {
 				var chk = document.getElementById( 'fcfdi_requiere_factura' );
 				var box = document.getElementById( 'fcfdi-campos' );
 				if ( chk && box ) { box.style.display = chk.checked ? 'block' : 'none'; }
 			}
-
-			function filtrarUsos() {
-				var regimenSel = document.getElementById( 'fcfdi_regimen_fiscal' );
-				var usoSel     = document.getElementById( 'fcfdi_uso_cfdi' );
-				if ( ! regimenSel || ! usoSel ) { return; }
-				var regimen = regimenSel.value;
-				var actual  = usoSel.value;
-
-				while ( usoSel.options.length > 1 ) { usoSel.remove( 1 ); }
-
-				Object.keys( usosTodos ).forEach( function ( clave ) {
-					var permitidos = matriz[ clave ];
-					var ok = ! regimen || ! permitidos || permitidos.indexOf( regimen ) !== -1;
-					if ( ok ) {
-						var opt = document.createElement( 'option' );
-						opt.value = clave;
-						opt.textContent = usosTodos[ clave ];
-						if ( clave === actual ) { opt.selected = true; }
-						usoSel.appendChild( opt );
-					}
-				} );
-			}
-
 			document.addEventListener( 'change', function ( e ) {
 				if ( e.target && e.target.id === 'fcfdi_requiere_factura' ) { sync(); }
-				if ( e.target && e.target.id === 'fcfdi_regimen_fiscal' ) { filtrarUsos(); }
 			} );
 			sync();
-			filtrarUsos();
 		} )();
 		</script>
 		<?php
