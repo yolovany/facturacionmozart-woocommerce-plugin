@@ -281,19 +281,30 @@ class FCFDI_Cliente {
 	 *
 	 * @param WC_Order $order Pedido.
 	 */
+	/**
+	 * ¿Se puede solicitar/corregir la factura de este pedido? Debe estar pagado y no
+	 * tener ya un CFDI vigente ni uno en curso (evita duplicar el timbrado). Fuente única
+	 * de verdad para el formulario y el endpoint que lo procesa.
+	 *
+	 * @param WC_Order $order Pedido.
+	 * @return bool
+	 */
+	private static function puede_solicitar( $order ) {
+		$estatus = $order->get_meta( '_fcfdi_estatus' );
+		if ( in_array( $estatus, array( 'timbrada', 'cancelada', 'encolada', 'en_proceso', 'reintentando' ), true ) ) {
+			return false;
+		}
+		return (bool) $order->is_paid();
+	}
+
 	public static function form_solicitar( $order ) {
 		if ( ! is_user_logged_in() || (int) $order->get_user_id() !== get_current_user_id() ) {
 			return;
 		}
+		if ( ! self::puede_solicitar( $order ) ) {
+			return;
+		}
 		$estatus = $order->get_meta( '_fcfdi_estatus' );
-		// Ya hay (o se está generando) un CFDI vigente: nada que solicitar.
-		if ( in_array( $estatus, array( 'timbrada', 'cancelada', 'encolada', 'en_proceso', 'reintentando' ), true ) ) {
-			return;
-		}
-		// Sólo tiene sentido facturar un pedido pagado.
-		if ( ! $order->is_paid() ) {
-			return;
-		}
 
 		$es_correccion = 'error' === $estatus || 'si' === $order->get_meta( '_fcfdi_correccion_solicitada' );
 		$titulo = $es_correccion
@@ -347,6 +358,15 @@ class FCFDI_Cliente {
 		$order = wc_get_order( $order_id );
 		if ( ! $order || (int) $order->get_user_id() !== get_current_user_id() ) {
 			wp_die( esc_html__( 'No autorizado.', 'facturacion-cfdi' ), '', array( 'response' => 403 ) );
+		}
+
+		// El pedido debe seguir siendo elegible: pagado y sin CFDI vigente ni en curso.
+		// Impide re-timbrar (y duplicar el CFDI) si el endpoint se invoca directo sobre un
+		// pedido ya timbrado o con timbrado en proceso.
+		if ( ! self::puede_solicitar( $order ) ) {
+			wc_add_notice( __( 'Este pedido ya tiene una factura o está en proceso.', 'facturacion-cfdi' ), 'error' );
+			wp_safe_redirect( $order->get_view_order_url() );
+			exit;
 		}
 
 		// phpcs:disable WordPress.Security.NonceVerification.Missing -- verificado arriba.
