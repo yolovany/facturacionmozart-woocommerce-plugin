@@ -496,7 +496,7 @@ class FCFDI_Cliente {
 		}
 
 		$order->add_order_note( __( 'El cliente solicitó/corrigió su factura desde Mi Cuenta.', 'facturacion-cfdi' ) );
-		wc_add_notice( __( 'Recibimos tu solicitud. Tu factura se generará en unos minutos.', 'facturacion-cfdi' ), 'success' );
+		wc_add_notice( __( 'Recibimos tu solicitud. Tu factura se generará automáticamente y te llegará por correo en cuanto esté lista.', 'facturacion-cfdi' ), 'success' );
 		wp_safe_redirect( $order->get_view_order_url() );
 		exit;
 	}

@@ -112,7 +112,7 @@ class FCFDI_My_Account {
 			echo '<div class="woocommerce-error" role="alert">' . esc_html( $aviso ) . '</div>';
 			echo '<p>' . esc_html__( 'Tu pago está registrado. Corrige tus datos abajo para volver a intentar tu factura.', 'facturacion-cfdi' ) . '</p>';
 		} else {
-			echo '<div class="woocommerce-info">' . esc_html__( 'Tu factura se está generando. Estará disponible en unos minutos.', 'facturacion-cfdi' ) . '</div>';
+			echo '<div class="woocommerce-info">' . esc_html__( 'Tu factura se está generando automáticamente y estará disponible aquí en cuanto se emita.', 'facturacion-cfdi' ) . '</div>';
 		}
 
 		echo '</section>';
