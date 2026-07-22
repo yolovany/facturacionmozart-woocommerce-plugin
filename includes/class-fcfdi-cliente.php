@@ -38,7 +38,7 @@ class FCFDI_Cliente {
 
 		// C2 (bloques): autorrelleno del checkout de bloques con el hook soportado de
 		// WooCommerce para valores por defecto de additional checkout fields. Namespace
-		// 'facturacionmozart-woocommerce-plugin' (FCFDI_Blocks::NS); slugs con guion.
+		// 'facturacion-cfdi' (FCFDI_Blocks::NS); slugs con guion.
 		foreach ( array_keys( self::PERFIL ) as $campo ) {
 			$slug = str_replace( '_', '-', $campo );
 			add_filter( 'woocommerce_get_default_value_for_facturacion-cfdi/' . $slug, array( __CLASS__, 'default_bloques' ), 10, 3 );

@@ -15,7 +15,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 class FCFDI_Blocks {
 
-	const NS = 'facturacionmozart-woocommerce-plugin';
+	const NS = 'facturacion-cfdi';
 
 	public static function init() {
 		add_action( 'woocommerce_init', array( __CLASS__, 'registrar' ) );
