@@ -1,0 +1,142 @@
+# Entorno de QA local para el plugin Facturación CFDI.
+# Levanta WordPress + WooCommerce con el plugin montado desde el repo, para probar
+# el checkout (clásico y bloques) contra un puente REST propio (backend que implemente
+# el contrato descrito en ../readme.txt).
+#
+# Uso rápido:
+#   1) En el host: tu backend/puente REST corriendo en :8080 (HTTP, sin TLS, para QA).
+#   2) docker compose up -d
+#   3) docker compose run --rm wpcli   (WP + WooCommerce + plugin + tienda demo Botica Serena)
+#   4) Abrir http://localhost:8000  (admin: admin / admin)
+#
+# El servicio 'bridge' (nginx) enruta al puente del host sin portproxy ni admin.
+# Ver README.md para el detalle.
+
+services:
+  # Proxy hacia el puente del host. Reescribe el Host a localhost:8080 (algunos servidores
+  # de desarrollo, p.ej. IIS Express, solo aceptan ese hostname) y reenvía a
+  # host.docker.internal:8080. Evita portproxy y admin: el plugin apunta a
+  # http://bridge/api/v1/facturas.
+  bridge:
+    image: nginx:alpine
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    volumes:
+      - ./bridge-proxy.conf:/etc/nginx/conf.d/default.conf:ro
+
+  db:
+    image: mariadb:11
+    environment:
+      MARIADB_DATABASE: wordpress
+      MARIADB_USER: wp
+      MARIADB_PASSWORD: wp
+      MARIADB_ROOT_PASSWORD: root
+    volumes:
+      - db_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  wordpress:
+    image: wordpress:php8.2-apache
+    depends_on:
+      db:
+        condition: service_healthy
+    ports:
+      - "8000:80"
+    environment:
+      WORDPRESS_DB_HOST: db
+      WORDPRESS_DB_USER: wp
+      WORDPRESS_DB_PASSWORD: wp
+      WORDPRESS_DB_NAME: wordpress
+      # Deja ver errores de PHP durante el QA.
+      WORDPRESS_DEBUG: 1
+      # Fidelidad con producción: se apaga el WP-Cron por pageload (impreciso) y el
+      # timbrado async lo dispara un cron REAL (servicio 'cron'), como debe ser en prod.
+      WORDPRESS_CONFIG_EXTRA: |
+        define('DISABLE_WP_CRON', true);
+    volumes:
+      - wp_data:/var/www/html
+      # El plugin se monta EN VIVO desde el repo: editas código y refrescas, sin rebuild.
+      - ../facturacion-cfdi:/var/www/html/wp-content/plugins/facturacion-cfdi
+      # Marca de la tienda demo "Botica Serena" (mu-plugins de carga obligatoria).
+      - ../demo/mu-plugins:/var/www/html/wp-content/mu-plugins:ro
+    healthcheck:
+      # "Sano" = el core de WordPress ya está copiado en el volumen (evita que wpcli/cron
+      # arranquen antes de que existan los archivos y falle la instalación por carrera).
+      test: ["CMD", "test", "-f", "/var/www/html/wp-includes/version.php"]
+      interval: 5s
+      timeout: 5s
+      retries: 30
+
+  # Servicio de un solo tiro: instala WordPress, WooCommerce y activa el plugin.
+  # Se corre a mano tras `up`:  docker compose run --rm wpcli
+  wpcli:
+    image: wordpress:cli-php8.2
+    # Root: la imagen cli (Alpine, www-data uid 82) no puede escribir sobre los archivos
+    # que crea la imagen apache (Debian, www-data uid 33). Como root, wp-cli (--allow-root)
+    # escribe sin choque de permisos.
+    user: root
+    # No arranca con `up`: es un paso deliberado -> docker compose run --rm wpcli
+    profiles: ["setup"]
+    depends_on:
+      db:
+        condition: service_healthy
+      wordpress:
+        condition: service_healthy
+    environment:
+      WORDPRESS_DB_HOST: db
+      WORDPRESS_DB_USER: wp
+      WORDPRESS_DB_PASSWORD: wp
+      WORDPRESS_DB_NAME: wordpress
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    volumes:
+      - wp_data:/var/www/html
+      - ../facturacion-cfdi:/var/www/html/wp-content/plugins/facturacion-cfdi
+      - ../demo/mu-plugins:/var/www/html/wp-content/mu-plugins:ro
+      # Scripts de la tienda demo Botica Serena (setup-store.php, make-images.php).
+      - ../demo:/demo:ro
+      - ./setup.sh:/setup.sh:ro
+    entrypoint: ["bash", "/setup.sh"]
+
+  # Cron REAL: dispara los eventos de WordPress y la cola de Action Scheduler cada minuto,
+  # igual que un cron del sistema en producción. Así el timbrado async no queda diferido.
+  cron:
+    image: wordpress:cli-php8.2
+    user: root
+    depends_on:
+      db:
+        condition: service_healthy
+      wordpress:
+        condition: service_healthy
+    environment:
+      WORDPRESS_DB_HOST: db
+      WORDPRESS_DB_USER: wp
+      WORDPRESS_DB_PASSWORD: wp
+      WORDPRESS_DB_NAME: wordpress
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    volumes:
+      - wp_data:/var/www/html
+      - ../facturacion-cfdi:/var/www/html/wp-content/plugins/facturacion-cfdi
+      - ../demo/mu-plugins:/var/www/html/wp-content/mu-plugins:ro
+    # Espera a que WP esté instalado; luego corre cron + Action Scheduler en bucle.
+    entrypoint:
+      - bash
+      - -c
+      - |
+        until wp --allow-root core is-installed >/dev/null 2>&1; do sleep 5; done
+        echo "cron activo (cada 60s)"
+        while true; do
+          wp --allow-root cron event run --due-now >/dev/null 2>&1 || true
+          wp --allow-root action-scheduler run >/dev/null 2>&1 || true
+          sleep 60
+        done
+    restart: unless-stopped
+
+volumes:
+  db_data:
+  wp_data:
