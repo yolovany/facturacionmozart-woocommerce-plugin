@@ -1,0 +1,139 @@
+# Reproducción del ENTORNO DEL CLIENTE FINAL para el plugin Facturación CFDI.
+#
+# A diferencia de docker-compose.yml (entorno de DESARROLLO, que monta el código del
+# plugin en vivo desde el repo), este stack reproduce EXACTAMENTE lo que hace el cliente:
+#   1) Levanta un WordPress + WooCommerce real con la tienda demo "Botica Serena".
+#   2) INSTALA el plugin desde el .zip del release (../dist/…-<version>.zip), igual que
+#      "WordPress > Plugins > Subir plugin". Así se valida el ARTEFACTO publicado, no el
+#      código suelto del repo (detecta, p.ej., un zip mal empaquetado que no instala).
+#
+# Uso (un solo comando; queda listo solo en ~1-2 min):
+#   1) Generar el zip del release (si no existe):  powershell -File ../build.ps1
+#   2) cd docker
+#   3) docker compose -f docker-compose.demo.yml up -d
+#   4) Abrir http://localhost:8000   (admin: admin / admin)
+#
+# Reinstalar desde cero (sobrescribe la instancia):
+#   docker compose -f docker-compose.demo.yml down -v
+#   docker compose -f docker-compose.demo.yml up -d
+#
+# Nota: este demo NO trae backend/puente de facturación. El plugin queda "no configurado"
+# (no bloquea la venta, pero tampoco timbra). Para timbrar de verdad, levanta tu backend
+# en :8080 (contrato en ../readme.txt) y captura el token en Ajustes > Facturación CFDI.
+
+name: facturacionmozart-demo
+
+services:
+  # Proxy hacia el puente del host (backend de facturación). Igual que en el entorno dev.
+  bridge:
+    image: nginx:alpine
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    volumes:
+      - ./bridge-proxy.conf:/etc/nginx/conf.d/default.conf:ro
+
+  db:
+    image: mariadb:11
+    environment:
+      MARIADB_DATABASE: wordpress
+      MARIADB_USER: wp
+      MARIADB_PASSWORD: wp
+      MARIADB_ROOT_PASSWORD: root
+    volumes:
+      - db_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  wordpress:
+    image: wordpress:php8.2-apache
+    depends_on:
+      db:
+        condition: service_healthy
+    ports:
+      - "8000:80"
+    environment:
+      WORDPRESS_DB_HOST: db
+      WORDPRESS_DB_USER: wp
+      WORDPRESS_DB_PASSWORD: wp
+      WORDPRESS_DB_NAME: wordpress
+      WORDPRESS_DEBUG: 1
+      WORDPRESS_CONFIG_EXTRA: |
+        define('DISABLE_WP_CRON', true);
+    volumes:
+      - wp_data:/var/www/html
+      # OJO: aquí NO se monta el código del plugin. Se instala desde el .zip (ver 'wpcli'),
+      # tal como lo haría el cliente. Solo se monta la marca de la tienda demo.
+      - ../demo/mu-plugins:/var/www/html/wp-content/mu-plugins:ro
+    healthcheck:
+      test: ["CMD", "test", "-f", "/var/www/html/wp-includes/version.php"]
+      interval: 5s
+      timeout: 5s
+      retries: 30
+
+  # Instalación de un solo tiro. A diferencia del entorno dev, aquí SÍ arranca con `up`
+  # (sin profile) para que quede listo sin pasos extra. Corre setup.sh: instala WP +
+  # WooCommerce, INSTALA EL PLUGIN DESDE EL ZIP (/dist) y arma la tienda demo. Luego sale.
+  wpcli:
+    image: wordpress:cli-php8.2
+    user: root
+    depends_on:
+      db:
+        condition: service_healthy
+      wordpress:
+        condition: service_healthy
+    environment:
+      WORDPRESS_DB_HOST: db
+      WORDPRESS_DB_USER: wp
+      WORDPRESS_DB_PASSWORD: wp
+      WORDPRESS_DB_NAME: wordpress
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    volumes:
+      - wp_data:/var/www/html
+      - ../demo/mu-plugins:/var/www/html/wp-content/mu-plugins:ro
+      - ../demo:/demo:ro
+      # El .zip del release: es lo que se instala como plugin (modo cliente).
+      - ../dist:/dist:ro
+      - ./setup.sh:/setup.sh:ro
+    entrypoint: ["bash", "/setup.sh"]
+    restart: "no"
+
+  # Cron REAL: dispara eventos de WP y la cola de Action Scheduler cada minuto (timbrado
+  # async), igual que en producción. No monta el código del plugin (va instalado en el volumen).
+  cron:
+    image: wordpress:cli-php8.2
+    user: root
+    depends_on:
+      db:
+        condition: service_healthy
+      wordpress:
+        condition: service_healthy
+    environment:
+      WORDPRESS_DB_HOST: db
+      WORDPRESS_DB_USER: wp
+      WORDPRESS_DB_PASSWORD: wp
+      WORDPRESS_DB_NAME: wordpress
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    volumes:
+      - wp_data:/var/www/html
+      - ../demo/mu-plugins:/var/www/html/wp-content/mu-plugins:ro
+    entrypoint:
+      - bash
+      - -c
+      - |
+        until wp --allow-root core is-installed >/dev/null 2>&1; do sleep 5; done
+        echo "cron activo (cada 60s)"
+        while true; do
+          wp --allow-root cron event run --due-now >/dev/null 2>&1 || true
+          wp --allow-root action-scheduler run >/dev/null 2>&1 || true
+          sleep 60
+        done
+    restart: unless-stopped
+
+volumes:
+  db_data:
+  wp_data:

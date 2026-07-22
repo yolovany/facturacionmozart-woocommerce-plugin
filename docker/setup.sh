@@ -27,11 +27,37 @@ else
   echo "==> WordPress ya instalado."
 fi
 
+# Permisos de wp-content: la imagen apache crea wp-content como www-data (uid 33), y
+# WooCommerce/plugins necesitan escribir en 'upgrade' y 'uploads' al instalar/descomprimir.
+# Si esos directorios no existen (o no son escribibles), el install revienta con
+# "Could not create directory .../wp-content/upgrade". Se crean explícitamente y se
+# ajusta el dueño para que tanto wp-cli (root) como Apache (www-data) puedan escribir.
+echo "==> Asegurando permisos de wp-content (upgrade/uploads)..."
+mkdir -p /var/www/html/wp-content/upgrade /var/www/html/wp-content/uploads
+chown -R www-data:www-data /var/www/html/wp-content 2>/dev/null || true
+chmod -R u+rwX,g+rwX /var/www/html/wp-content 2>/dev/null || true
+
 echo "==> Instalando/activando WooCommerce..."
 $WP plugin is-installed woocommerce >/dev/null 2>&1 || $WP plugin install woocommerce --activate
 $WP plugin activate woocommerce || true
 
-echo "==> Activando plugin Facturación CFDI..."
+echo "==> Instalando/activando el plugin Facturación CFDI..."
+# Dos modos, según cómo esté montado el plugin:
+#   - DEV (docker-compose.yml): el código va montado en vivo desde el repo, así que el
+#     plugin ya "existe" -> solo se activa (editas y refrescas, sin reinstalar).
+#   - DEMO/CLIENTE (docker-compose.demo.yml): NO se monta el código; en su lugar se monta
+#     el .zip del release en /dist y se instala EXACTAMENTE como lo haría el cliente
+#     (WordPress > Plugins > Subir plugin). Así validamos el artefacto publicado.
+if ! $WP plugin is-installed facturacionmozart-woocommerce-plugin >/dev/null 2>&1; then
+  ZIP="$(ls /dist/facturacionmozart-woocommerce-plugin-*.zip 2>/dev/null | sort -V | tail -1)"
+  if [ -n "$ZIP" ]; then
+    echo "    Instalando desde el release: $(basename "$ZIP")"
+    $WP plugin install "$ZIP" --force
+  else
+    echo "  ERROR: el plugin no está montado ni hay .zip en /dist. Abortando." >&2
+    exit 1
+  fi
+fi
 $WP plugin activate facturacionmozart-woocommerce-plugin
 
 echo "==> Datos de tienda mínimos (MXN, país MX)..."
