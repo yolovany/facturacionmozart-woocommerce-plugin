@@ -65,4 +65,5 @@ checkout y captura los datos fiscales.
 ## Ver también
 
 - [`../docker/`](../docker/) — levanta WordPress + WooCommerce desde cero y usa esta
-  demo automáticamente.
+  demo automáticamente. Su modo **demo/cliente** (`docker-compose.demo.yml`) instala el
+  plugin desde el `.zip` del release, reproduciendo la instalación del cliente final.

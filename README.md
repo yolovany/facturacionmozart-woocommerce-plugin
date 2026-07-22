@@ -67,11 +67,18 @@ comportamiento sin tocar el código. Ver el listado completo y el changelog en
 | Carpeta | Qué es | Cuándo usarla |
 |---|---|---|
 | [`demo/`](demo/) | Contenido de una tienda ficticia ("Botica Serena"): identidad, productos con claves SAT, portada. | Ya tienes un WordPress propio corriendo y quieres poblarlo para ver el plugin en acción. |
-| [`docker/`](docker/) | Entorno reproducible (WordPress + WooCommerce + MySQL + cron real) que levanta todo desde cero y monta el plugin en vivo. Usa `demo/` para poblar la tienda. | No tienes WordPress a mano, o quieres un entorno limpio de desarrollo/QA. |
+| [`docker/`](docker/) | Entorno reproducible (WordPress + WooCommerce + MySQL + cron real) que levanta todo desde cero y usa `demo/` para poblar la tienda. | No tienes WordPress a mano, o quieres un entorno limpio de desarrollo/QA. |
 
-Ninguno de los dos incluye un backend de facturación real — sirven para ver el plugin y
-el checkout funcionando; el timbrado real requiere tu propio backend (ver
-"Cómo funciona" arriba).
+El entorno `docker/` tiene dos modos:
+
+- **Desarrollo** (`docker compose up -d`): monta el plugin **en vivo** desde el repo —
+  editas y refrescas.
+- **Demo / cliente** (`docker compose -f docker-compose.demo.yml up -d`): **instala el
+  plugin desde el `.zip` del release**, reproduciendo lo que hará el cliente final, con
+  un solo comando. Ver [`docker/README.md`](docker/README.md).
+
+Ninguno incluye un backend de facturación real — sirven para ver el plugin y el checkout
+funcionando; el timbrado real requiere tu propio backend (ver "Cómo funciona" arriba).
 
 ## Licencia
 

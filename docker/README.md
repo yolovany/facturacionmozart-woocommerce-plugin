@@ -2,10 +2,16 @@
 
 # Entorno Docker de desarrollo local — Plugin Facturación CFDI
 
-Levanta un WordPress + WooCommerce real (checkout clásico **y** de bloques) con el
-plugin montado en vivo desde el repo, para probar el checkout, el pre-flight y el
-filtro uso/régimen. Sirve como guía de desarrollo: no requiere tocar un WordPress
-manualmente cada vez que cambias el plugin.
+Levanta un WordPress + WooCommerce real (checkout clásico **y** de bloques) con la
+tienda demo "Botica Serena", para probar el checkout, el pre-flight y el filtro
+uso/régimen. Dos modos:
+
+- **Desarrollo** (`docker-compose.yml`): monta el código del plugin **en vivo** desde el
+  repo. Editas y refrescas, sin reinstalar. Es la guía de desarrollo/QA del día a día.
+- **Demo / cliente** (`docker-compose.demo.yml`): **instala el plugin desde el `.zip` del
+  release** (igual que "Plugins → Subir plugin"), no monta el código. Reproduce
+  exactamente lo que hará el cliente final y valida el artefacto publicado. Queda listo
+  con **un solo comando**. Ver [Reproducir la instalación del cliente](#reproducir-la-instalación-del-cliente-desde-el-zip-del-release).
 
 > Este entorno **no incluye un backend de facturación**. El plugin solo habla REST con
 > un backend propio (ver el contrato en [`../readme.txt`](../readme.txt)); aquí puedes
@@ -17,7 +23,8 @@ manualmente cada vez que cambias el plugin.
 - [Por qué Docker y no `php -S`](#por-qué-docker-y-no-php--s)
 - [Requisitos](#requisitos)
 - [Cómo alcanza el contenedor a un backend en el host](#cómo-alcanza-el-contenedor-a-un-backend-en-el-host)
-- [Puesta en marcha](#puesta-en-marcha)
+- [Puesta en marcha (desarrollo)](#puesta-en-marcha-desarrollo)
+- [Reproducir la instalación del cliente (desde el `.zip` del release)](#reproducir-la-instalación-del-cliente-desde-el-zip-del-release)
 - [Configurar el plugin](#configurar-el-plugin)
 - [Escenarios de prueba sugeridos](#escenarios-de-prueba-sugeridos)
 - [Trabajo diario](#trabajo-diario)
@@ -61,7 +68,9 @@ El plugin apunta a `http://bridge/api/v1/facturas` (se preconfigura solo en
 `setup.sh`). Ajusta `bridge-proxy.conf` si tu backend usa otro puerto o no necesita la
 reescritura de Host.
 
-## Puesta en marcha
+## Puesta en marcha (desarrollo)
+
+Modo con el plugin montado **en vivo** desde el repo (editas y refrescas):
 
 ```powershell
 # 1) (Opcional) Levanta tu backend/puente en :8080 con HTTPS desactivado para loopback.
@@ -80,6 +89,40 @@ El `wpcli` deja la tienda demo **Botica Serena** (ficticia) lista: idioma `es_MX
 marca pastel (mu-plugins), 6 productos naturistas con claves SAT e imágenes, portada y
 método "contra entrega". Es la misma demo de [`../demo/`](../demo/), ahora sobre
 Docker.
+
+## Reproducir la instalación del cliente (desde el `.zip` del release)
+
+Para verificar **lo mismo que hará el cliente final** —instalar el paquete publicado del
+plugin y probar la tienda— usa `docker-compose.demo.yml`. A diferencia del modo de
+desarrollo, **no monta el código**: instala el plugin desde `../dist/*.zip` igual que
+"WordPress → Plugins → Subir plugin". Así se valida el artefacto real (p.ej. que el `.zip`
+quedó bien empaquetado y se instala limpio en Linux), y queda listo con **un solo comando**.
+
+```powershell
+cd docker
+
+# 1) Generar el .zip del release (queda en ../dist/). dist/ está en .gitignore, así que
+#    no viaja en el repo: hay que generarlo, o copiar ahí el .zip descargado del release.
+powershell -ExecutionPolicy Bypass -File ..\build.ps1
+
+# 2) Levantar y provisionar TODO de un tiro (WP + WooCommerce + demo + plugin desde el zip)
+docker compose -f docker-compose.demo.yml up -d
+```
+
+Espera ~1-2 min (la primera vez descarga WooCommerce y el idioma) y abre
+<http://localhost:8000> — admin: `admin` / `admin`. No hay paso manual de `wpcli`: el
+servicio de setup corre solo con el `up` y termina.
+
+Reinstalar desde cero (sobrescribe la instancia, borra WP + BD):
+
+```powershell
+docker compose -f docker-compose.demo.yml down -v
+docker compose -f docker-compose.demo.yml up -d
+```
+
+> Igual que el modo de desarrollo, este demo **no** trae backend de facturación: el
+> plugin queda "no configurado" (no bloquea la venta, pero tampoco timbra). Para timbrar,
+> levanta tu backend en `:8080` y captura el token en Ajustes → Facturación CFDI.
 
 ## Configurar el plugin
 
@@ -141,7 +184,7 @@ docker compose run --rm --entrypoint wp wpcli --allow-root user update admin --u
 |---|---|
 | `failed to connect to the docker API ... dockerDesktopLinuxEngine` | Docker Desktop no está corriendo. Ábrelo y espera a que la ballena quede fija. |
 | Pull falla con `EOF` desde `cloudfront.docker.com` | Tu red corta el CDN de Docker Hub. Agrega un espejo en `~/.docker/daemon.json`: `{ "registry-mirrors": ["https://mirror.gcr.io"] }` y reinicia Docker Desktop. |
-| `Could not create directory ... wp-content/upgrade` | Choque de permisos entre la imagen `cli` (Alpine) y `apache` (Debian). Ya resuelto: los servicios cli corren como `user: root`. |
+| `Could not create directory ... wp-content/upgrade` (o `uploads`) | Los directorios `upgrade`/`uploads` no existían o no eran escribibles, y WooCommerce/el plugin no podían descomprimirse → el setup abortaba. Ya resuelto: `setup.sh` los pre-crea y ajusta el dueño (`www-data`) antes de instalar. |
 | El puerto 8000 está ocupado | Cierra cualquier WordPress previo antes de `up`. |
 
 ## Limpieza
