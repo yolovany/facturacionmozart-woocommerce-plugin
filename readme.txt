@@ -6,7 +6,7 @@ Tested up to: 6.6
 Requires PHP: 7.4
 WC requires at least: 6.0
 WC tested up to: 9.0
-Stable tag: 1.0.0
+Stable tag: 1.11.5
 License: GPLv2 or later
 
 Genera facturas CFDI automáticamente para cada pedido de WooCommerce a través del puente REST del sistema de facturación.
