@@ -1,4 +1,4 @@
-# Facturación CFDI para WooCommerce
+# Plugin de FacturaciónMozart para WooCommerce
 
 ![License: GPL v2+](https://img.shields.io/badge/license-GPL--2.0--or--later-blue.svg)
 ![WordPress](https://img.shields.io/badge/WordPress-6.0%2B-21759b.svg)
