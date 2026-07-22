@@ -38,7 +38,7 @@ class FCFDI_Cliente {
 
 		// C2 (bloques): autorrelleno del checkout de bloques con el hook soportado de
 		// WooCommerce para valores por defecto de additional checkout fields. Namespace
-		// 'facturacion-cfdi' (FCFDI_Blocks::NS); slugs con guion.
+		// 'facturacionmozart-woocommerce-plugin' (FCFDI_Blocks::NS); slugs con guion.
 		foreach ( array_keys( self::PERFIL ) as $campo ) {
 			$slug = str_replace( '_', '-', $campo );
 			add_filter( 'woocommerce_get_default_value_for_facturacion-cfdi/' . $slug, array( __CLASS__, 'default_bloques' ), 10, 3 );
@@ -79,12 +79,12 @@ class FCFDI_Cliente {
 		$nuevo = array();
 		foreach ( $items as $key => $label ) {
 			if ( 'customer-logout' === $key ) {
-				$nuevo[ self::ENDPOINT ] = __( 'Mis Facturas', 'facturacion-cfdi' );
+				$nuevo[ self::ENDPOINT ] = __( 'Mis Facturas', 'facturacionmozart-woocommerce-plugin' );
 			}
 			$nuevo[ $key ] = $label;
 		}
 		if ( ! isset( $nuevo[ self::ENDPOINT ] ) ) {
-			$nuevo[ self::ENDPOINT ] = __( 'Mis Facturas', 'facturacion-cfdi' );
+			$nuevo[ self::ENDPOINT ] = __( 'Mis Facturas', 'facturacionmozart-woocommerce-plugin' );
 		}
 		return $nuevo;
 	}
@@ -120,26 +120,26 @@ class FCFDI_Cliente {
 			}
 		);
 
-		echo '<h2>' . esc_html__( 'Mis Facturas', 'facturacion-cfdi' ) . '</h2>';
+		echo '<h2>' . esc_html__( 'Mis Facturas', 'facturacionmozart-woocommerce-plugin' ) . '</h2>';
 
 		if ( empty( $con_cfdi ) ) {
-			echo '<p>' . esc_html__( 'Aún no tienes facturas timbradas. Cuando generemos un CFDI de tus pedidos aparecerá aquí.', 'facturacion-cfdi' ) . '</p>';
+			echo '<p>' . esc_html__( 'Aún no tienes facturas timbradas. Cuando generemos un CFDI de tus pedidos aparecerá aquí.', 'facturacionmozart-woocommerce-plugin' ) . '</p>';
 			return;
 		}
 
 		echo '<table class="woocommerce-orders-table shop_table shop_table_responsive">';
 		echo '<thead><tr>';
-		echo '<th>' . esc_html__( 'Pedido', 'facturacion-cfdi' ) . '</th>';
-		echo '<th>' . esc_html__( 'Fecha', 'facturacion-cfdi' ) . '</th>';
-		echo '<th>' . esc_html__( 'UUID', 'facturacion-cfdi' ) . '</th>';
-		echo '<th>' . esc_html__( 'Estatus', 'facturacion-cfdi' ) . '</th>';
-		echo '<th>' . esc_html__( 'Descargar', 'facturacion-cfdi' ) . '</th>';
+		echo '<th>' . esc_html__( 'Pedido', 'facturacionmozart-woocommerce-plugin' ) . '</th>';
+		echo '<th>' . esc_html__( 'Fecha', 'facturacionmozart-woocommerce-plugin' ) . '</th>';
+		echo '<th>' . esc_html__( 'UUID', 'facturacionmozart-woocommerce-plugin' ) . '</th>';
+		echo '<th>' . esc_html__( 'Estatus', 'facturacionmozart-woocommerce-plugin' ) . '</th>';
+		echo '<th>' . esc_html__( 'Descargar', 'facturacionmozart-woocommerce-plugin' ) . '</th>';
 		echo '</tr></thead><tbody>';
 
 		foreach ( $con_cfdi as $o ) {
 			$estatus   = $o->get_meta( '_fcfdi_estatus' );
 			$uuid      = $o->get_meta( '_fcfdi_uuid' );
-			$etiqueta  = 'cancelada' === $estatus ? __( 'Cancelada', 'facturacion-cfdi' ) : __( 'Timbrada', 'facturacion-cfdi' );
+			$etiqueta  = 'cancelada' === $estatus ? __( 'Cancelada', 'facturacionmozart-woocommerce-plugin' ) : __( 'Timbrada', 'facturacionmozart-woocommerce-plugin' );
 			$fecha     = $o->get_date_created() ? wc_format_datetime( $o->get_date_created() ) : '';
 			$pdf       = FCFDI_My_Account::url_descarga_publica( $o->get_id(), 'pdf' );
 			$xml       = FCFDI_My_Account::url_descarga_publica( $o->get_id(), 'xml' );
@@ -163,23 +163,23 @@ class FCFDI_Cliente {
 		// Guardado del propio formulario de perfil.
 		if ( isset( $_POST['fcfdi_guardar_perfil'] ) && check_admin_referer( 'fcfdi_perfil' ) ) {
 			self::guardar_perfil_desde_post( $user_id );
-			wc_add_notice( __( 'Perfil fiscal guardado.', 'facturacion-cfdi' ), 'success' );
+			wc_add_notice( __( 'Perfil fiscal guardado.', 'facturacionmozart-woocommerce-plugin' ), 'success' );
 		}
 
 		$val = function ( $campo ) use ( $user_id ) {
 			return (string) get_user_meta( $user_id, 'fcfdi_perfil_' . $campo, true );
 		};
 
-		echo '<h2>' . esc_html__( 'Perfil fiscal', 'facturacion-cfdi' ) . '</h2>';
-		echo '<p>' . esc_html__( 'Guarda tus datos fiscales para autocompletar el checkout la próxima vez.', 'facturacion-cfdi' ) . '</p>';
+		echo '<h2>' . esc_html__( 'Perfil fiscal', 'facturacionmozart-woocommerce-plugin' ) . '</h2>';
+		echo '<p>' . esc_html__( 'Guarda tus datos fiscales para autocompletar el checkout la próxima vez.', 'facturacionmozart-woocommerce-plugin' ) . '</p>';
 		echo '<form method="post" class="woocommerce-EditAccountForm">';
 		wp_nonce_field( 'fcfdi_perfil' );
-		self::campo_texto( 'fcfdi_rfc', __( 'RFC', 'facturacion-cfdi' ), $val( 'rfc' ) );
-		self::campo_texto( 'fcfdi_razon_social', __( 'Razón social', 'facturacion-cfdi' ), $val( 'razon_social' ) );
-		self::campo_texto( 'fcfdi_cp', __( 'Código postal fiscal', 'facturacion-cfdi' ), $val( 'cp' ) );
-		self::campo_select( 'fcfdi_regimen_fiscal', __( 'Régimen fiscal', 'facturacion-cfdi' ), FCFDI_Checkout::regimenes(), $val( 'regimen_fiscal' ) );
-		self::campo_select( 'fcfdi_uso_cfdi', __( 'Uso de CFDI', 'facturacion-cfdi' ), FCFDI_Checkout::usos_cfdi(), $val( 'uso_cfdi' ) );
-		echo '<p><button type="submit" class="button woocommerce-Button" name="fcfdi_guardar_perfil" value="1">' . esc_html__( 'Guardar perfil fiscal', 'facturacion-cfdi' ) . '</button></p>';
+		self::campo_texto( 'fcfdi_rfc', __( 'RFC', 'facturacionmozart-woocommerce-plugin' ), $val( 'rfc' ) );
+		self::campo_texto( 'fcfdi_razon_social', __( 'Razón social', 'facturacionmozart-woocommerce-plugin' ), $val( 'razon_social' ) );
+		self::campo_texto( 'fcfdi_cp', __( 'Código postal fiscal', 'facturacionmozart-woocommerce-plugin' ), $val( 'cp' ) );
+		self::campo_select( 'fcfdi_regimen_fiscal', __( 'Régimen fiscal', 'facturacionmozart-woocommerce-plugin' ), FCFDI_Checkout::regimenes(), $val( 'regimen_fiscal' ) );
+		self::campo_select( 'fcfdi_uso_cfdi', __( 'Uso de CFDI', 'facturacionmozart-woocommerce-plugin' ), FCFDI_Checkout::usos_cfdi(), $val( 'uso_cfdi' ) );
+		echo '<p><button type="submit" class="button woocommerce-Button" name="fcfdi_guardar_perfil" value="1">' . esc_html__( 'Guardar perfil fiscal', 'facturacionmozart-woocommerce-plugin' ) . '</button></p>';
 		echo '</form><hr>';
 	}
 
@@ -219,7 +219,7 @@ class FCFDI_Cliente {
 			esc_html( $label ),
 			$required ? ' required' : ''
 		);
-		echo '<option value="">' . esc_html__( 'Selecciona…', 'facturacion-cfdi' ) . '</option>';
+		echo '<option value="">' . esc_html__( 'Selecciona…', 'facturacionmozart-woocommerce-plugin' ) . '</option>';
 		foreach ( $opciones as $value => $lbl ) {
 			printf(
 				'<option value="%1$s"%2$s>%3$s</option>',
@@ -365,8 +365,8 @@ class FCFDI_Cliente {
 
 		$es_correccion = 'error' === $estatus || 'si' === $order->get_meta( '_fcfdi_correccion_solicitada' );
 		$titulo = $es_correccion
-			? __( 'Corregir datos de tu factura', 'facturacion-cfdi' )
-			: __( 'Solicitar factura', 'facturacion-cfdi' );
+			? __( 'Corregir datos de tu factura', 'facturacionmozart-woocommerce-plugin' )
+			: __( 'Solicitar factura', 'facturacionmozart-woocommerce-plugin' );
 
 		$user_id = get_current_user_id();
 		$pref    = function ( $campo, $meta ) use ( $order, $user_id ) {
@@ -379,20 +379,20 @@ class FCFDI_Cliente {
 
 		echo '<section class="fcfdi-solicitar"><h2>' . esc_html( $titulo ) . '</h2>';
 		if ( $es_correccion ) {
-			echo '<p>' . esc_html__( 'Revisa y corrige tus datos fiscales para volver a intentar la factura.', 'facturacion-cfdi' ) . '</p>';
+			echo '<p>' . esc_html__( 'Revisa y corrige tus datos fiscales para volver a intentar la factura.', 'facturacionmozart-woocommerce-plugin' ) . '</p>';
 		} else {
-			echo '<p>' . esc_html__( 'Captura tus datos fiscales para generar el CFDI de este pedido.', 'facturacion-cfdi' ) . '</p>';
+			echo '<p>' . esc_html__( 'Captura tus datos fiscales para generar el CFDI de este pedido.', 'facturacionmozart-woocommerce-plugin' ) . '</p>';
 		}
 		echo '<form method="post" action="' . esc_url( admin_url( 'admin-post.php' ) ) . '" class="woocommerce-EditAccountForm">';
 		echo '<input type="hidden" name="action" value="' . esc_attr( self::ACTION ) . '">';
 		echo '<input type="hidden" name="order_id" value="' . esc_attr( $order->get_id() ) . '">';
 		wp_nonce_field( self::ACTION . '_' . $order->get_id() );
-		self::campo_texto( 'fcfdi_rfc', __( 'RFC', 'facturacion-cfdi' ), $pref( 'rfc', '_fcfdi_rfc' ), true );
-		self::campo_texto( 'fcfdi_razon_social', __( 'Razón social', 'facturacion-cfdi' ), $pref( 'razon_social', '_fcfdi_razon_social' ), true );
-		self::campo_texto( 'fcfdi_cp', __( 'Código postal fiscal', 'facturacion-cfdi' ), $pref( 'cp', '_fcfdi_cp' ), true );
-		self::campo_select( 'fcfdi_regimen_fiscal', __( 'Régimen fiscal', 'facturacion-cfdi' ), FCFDI_Checkout::regimenes(), $pref( 'regimen_fiscal', '_fcfdi_regimen_fiscal' ), true );
-		self::campo_select( 'fcfdi_uso_cfdi', __( 'Uso de CFDI', 'facturacion-cfdi' ), FCFDI_Checkout::usos_cfdi(), $pref( 'uso_cfdi', '_fcfdi_uso_cfdi' ), true );
-		echo '<p><button type="submit" class="button woocommerce-Button">' . esc_html__( 'Solicitar factura', 'facturacion-cfdi' ) . '</button></p>';
+		self::campo_texto( 'fcfdi_rfc', __( 'RFC', 'facturacionmozart-woocommerce-plugin' ), $pref( 'rfc', '_fcfdi_rfc' ), true );
+		self::campo_texto( 'fcfdi_razon_social', __( 'Razón social', 'facturacionmozart-woocommerce-plugin' ), $pref( 'razon_social', '_fcfdi_razon_social' ), true );
+		self::campo_texto( 'fcfdi_cp', __( 'Código postal fiscal', 'facturacionmozart-woocommerce-plugin' ), $pref( 'cp', '_fcfdi_cp' ), true );
+		self::campo_select( 'fcfdi_regimen_fiscal', __( 'Régimen fiscal', 'facturacionmozart-woocommerce-plugin' ), FCFDI_Checkout::regimenes(), $pref( 'regimen_fiscal', '_fcfdi_regimen_fiscal' ), true );
+		self::campo_select( 'fcfdi_uso_cfdi', __( 'Uso de CFDI', 'facturacionmozart-woocommerce-plugin' ), FCFDI_Checkout::usos_cfdi(), $pref( 'uso_cfdi', '_fcfdi_uso_cfdi' ), true );
+		echo '<p><button type="submit" class="button woocommerce-Button">' . esc_html__( 'Solicitar factura', 'facturacionmozart-woocommerce-plugin' ) . '</button></p>';
 		echo '</form></section>';
 	}
 
@@ -404,20 +404,20 @@ class FCFDI_Cliente {
 	public static function procesar_solicitud() {
 		$order_id = isset( $_POST['order_id'] ) ? absint( $_POST['order_id'] ) : 0;
 		if ( ! is_user_logged_in() ) {
-			wp_die( esc_html__( 'Debes iniciar sesión.', 'facturacion-cfdi' ), '', array( 'response' => 401 ) );
+			wp_die( esc_html__( 'Debes iniciar sesión.', 'facturacionmozart-woocommerce-plugin' ), '', array( 'response' => 401 ) );
 		}
 		check_admin_referer( self::ACTION . '_' . $order_id );
 
 		$order = wc_get_order( $order_id );
 		if ( ! $order || (int) $order->get_user_id() !== get_current_user_id() ) {
-			wp_die( esc_html__( 'No autorizado.', 'facturacion-cfdi' ), '', array( 'response' => 403 ) );
+			wp_die( esc_html__( 'No autorizado.', 'facturacionmozart-woocommerce-plugin' ), '', array( 'response' => 403 ) );
 		}
 
 		// El pedido debe seguir siendo elegible: pagado y sin CFDI vigente ni en curso.
 		// Impide re-timbrar (y duplicar el CFDI) si el endpoint se invoca directo sobre un
 		// pedido ya timbrado o con timbrado en proceso.
 		if ( ! self::puede_solicitar( $order ) ) {
-			wc_add_notice( __( 'Este pedido ya tiene una factura o está en proceso.', 'facturacion-cfdi' ), 'error' );
+			wc_add_notice( __( 'Este pedido ya tiene una factura o está en proceso.', 'facturacionmozart-woocommerce-plugin' ), 'error' );
 			wp_safe_redirect( $order->get_view_order_url() );
 			exit;
 		}
@@ -433,19 +433,19 @@ class FCFDI_Cliente {
 		// Validación de formato local (misma que el checkout).
 		$errores = array();
 		if ( ! preg_match( '/^([A-ZÑ&]{3,4})\d{6}([A-Z\d]{3})$/', $rfc ) ) {
-			$errores[] = __( 'El RFC no tiene un formato válido.', 'facturacion-cfdi' );
+			$errores[] = __( 'El RFC no tiene un formato válido.', 'facturacionmozart-woocommerce-plugin' );
 		}
 		if ( '' === $razon ) {
-			$errores[] = __( 'Captura la razón social.', 'facturacion-cfdi' );
+			$errores[] = __( 'Captura la razón social.', 'facturacionmozart-woocommerce-plugin' );
 		}
 		if ( ! preg_match( '/^\d{5}$/', $cp ) ) {
-			$errores[] = __( 'El código postal fiscal debe tener 5 dígitos.', 'facturacion-cfdi' );
+			$errores[] = __( 'El código postal fiscal debe tener 5 dígitos.', 'facturacionmozart-woocommerce-plugin' );
 		}
 		if ( '' === $regimen ) {
-			$errores[] = __( 'Selecciona el régimen fiscal.', 'facturacion-cfdi' );
+			$errores[] = __( 'Selecciona el régimen fiscal.', 'facturacionmozart-woocommerce-plugin' );
 		}
 		if ( '' === $uso ) {
-			$errores[] = __( 'Selecciona el uso de CFDI.', 'facturacion-cfdi' );
+			$errores[] = __( 'Selecciona el uso de CFDI.', 'facturacionmozart-woocommerce-plugin' );
 		}
 		if ( '' !== $uso && '' !== $regimen && class_exists( 'FCFDI_Checkout' ) && ! FCFDI_Checkout::combo_valido( $uso, $regimen ) ) {
 			$errores[] = FCFDI_Checkout::mensaje_error( 'USO_CFDI_INCOMPATIBLE' );
@@ -495,8 +495,8 @@ class FCFDI_Cliente {
 			FCFDI_Order_Handler::on_pagado( $order->get_id() );
 		}
 
-		$order->add_order_note( __( 'El cliente solicitó/corrigió su factura desde Mi Cuenta.', 'facturacion-cfdi' ) );
-		wc_add_notice( __( 'Recibimos tu solicitud. Tu factura se generará automáticamente y te llegará por correo en cuanto esté lista.', 'facturacion-cfdi' ), 'success' );
+		$order->add_order_note( __( 'El cliente solicitó/corrigió su factura desde Mi Cuenta.', 'facturacionmozart-woocommerce-plugin' ) );
+		wc_add_notice( __( 'Recibimos tu solicitud. Tu factura se generará automáticamente y te llegará por correo en cuanto esté lista.', 'facturacionmozart-woocommerce-plugin' ), 'success' );
 		wp_safe_redirect( $order->get_view_order_url() );
 		exit;
 	}

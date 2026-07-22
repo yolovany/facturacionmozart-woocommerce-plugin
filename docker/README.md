@@ -131,7 +131,7 @@ El servicio `wpcli` tiene como entrypoint el `setup.sh`, así que para correr un
 root):
 
 ```powershell
-docker compose run --rm --entrypoint wp wpcli --allow-root plugin get facturacion-cfdi --field=version
+docker compose run --rm --entrypoint wp wpcli --allow-root plugin get facturacionmozart-woocommerce-plugin --field=version
 docker compose run --rm --entrypoint wp wpcli --allow-root user update admin --user_pass=admin
 ```
 

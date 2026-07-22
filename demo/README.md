@@ -3,7 +3,7 @@
 # Tienda demo — Botica Serena (ficticia)
 
 Entorno de simulación WooCommerce para probar el plugin de facturación CFDI
-(`facturacion-cfdi`) de forma inmersiva: identidad ficticia, productos naturistas,
+(`facturacionmozart-woocommerce-plugin`) de forma inmersiva: identidad ficticia, productos naturistas,
 portada y paleta de color pastel.
 
 > **Marca inventada solo para esta demo — sin relación con ningún negocio real.**
@@ -23,7 +23,7 @@ arman la tienda sobre una instalación limpia.
 ## Requisitos
 
 - PHP 8.2 con extensiones `gd` y `mysqli`.
-- WordPress + WooCommerce + el plugin `facturacion-cfdi`, ya activos.
+- WordPress + WooCommerce + el plugin `facturacionmozart-woocommerce-plugin`, ya activos.
 - [WP-CLI](https://wp-cli.org/).
 
 ## Montaje

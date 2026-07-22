@@ -88,16 +88,16 @@ class FCFDI_My_Account {
 			return;
 		}
 
-		echo '<section class="fcfdi-factura woocommerce-order-fcfdi"><h2>' . esc_html__( 'Factura (CFDI)', 'facturacion-cfdi' ) . '</h2>';
+		echo '<section class="fcfdi-factura woocommerce-order-fcfdi"><h2>' . esc_html__( 'Factura (CFDI)', 'facturacionmozart-woocommerce-plugin' ) . '</h2>';
 
 		if ( 'timbrada' === $estatus ) {
-			echo '<p>' . esc_html__( 'UUID:', 'facturacion-cfdi' ) . ' <code>' . esc_html( $order->get_meta( '_fcfdi_uuid' ) ) . '</code></p>';
+			echo '<p>' . esc_html__( 'UUID:', 'facturacionmozart-woocommerce-plugin' ) . ' <code>' . esc_html( $order->get_meta( '_fcfdi_uuid' ) ) . '</code></p>';
 			self::botones_descarga( $order->get_id() );
 		} elseif ( 'cancelada' === $estatus ) {
 			// El SAT obliga a conservar el CFDI cancelado: se mantiene la descarga.
-			echo '<div class="woocommerce-info">' . esc_html__( 'Esta factura fue cancelada ante el SAT. Conserva el comprobante para tus registros.', 'facturacion-cfdi' ) . '</div>';
+			echo '<div class="woocommerce-info">' . esc_html__( 'Esta factura fue cancelada ante el SAT. Conserva el comprobante para tus registros.', 'facturacionmozart-woocommerce-plugin' ) . '</div>';
 			if ( $order->get_meta( '_fcfdi_uuid' ) ) {
-				echo '<p>' . esc_html__( 'UUID:', 'facturacion-cfdi' ) . ' <code>' . esc_html( $order->get_meta( '_fcfdi_uuid' ) ) . '</code></p>';
+				echo '<p>' . esc_html__( 'UUID:', 'facturacionmozart-woocommerce-plugin' ) . ' <code>' . esc_html( $order->get_meta( '_fcfdi_uuid' ) ) . '</code></p>';
 			}
 			self::botones_descarga( $order->get_id() );
 		} elseif ( 'error' === $estatus ) {
@@ -105,14 +105,14 @@ class FCFDI_My_Account {
 			$guardado = (string) $order->get_meta( '_fcfdi_error' );
 			$codigo   = ( false !== strpos( $guardado, ':' ) ) ? trim( strstr( $guardado, ':', true ) ) : '';
 			$motivo   = class_exists( 'FCFDI_Checkout' ) ? FCFDI_Checkout::mensaje_error( $codigo ) : '';
-			$aviso    = __( 'No pudimos generar tu factura automáticamente.', 'facturacion-cfdi' );
+			$aviso    = __( 'No pudimos generar tu factura automáticamente.', 'facturacionmozart-woocommerce-plugin' );
 			if ( $motivo ) {
 				$aviso .= ' ' . $motivo;
 			}
 			echo '<div class="woocommerce-error" role="alert">' . esc_html( $aviso ) . '</div>';
-			echo '<p>' . esc_html__( 'Tu pago está registrado. Corrige tus datos abajo para volver a intentar tu factura.', 'facturacion-cfdi' ) . '</p>';
+			echo '<p>' . esc_html__( 'Tu pago está registrado. Corrige tus datos abajo para volver a intentar tu factura.', 'facturacionmozart-woocommerce-plugin' ) . '</p>';
 		} else {
-			echo '<div class="woocommerce-info">' . esc_html__( 'Tu factura se está generando automáticamente y estará disponible aquí en cuanto se emita.', 'facturacion-cfdi' ) . '</div>';
+			echo '<div class="woocommerce-info">' . esc_html__( 'Tu factura se está generando automáticamente y estará disponible aquí en cuanto se emita.', 'facturacionmozart-woocommerce-plugin' ) . '</div>';
 		}
 
 		echo '</section>';
@@ -127,8 +127,8 @@ class FCFDI_My_Account {
 		$pdf = self::url_descarga( $order_id, 'pdf' );
 		$xml = self::url_descarga( $order_id, 'xml' );
 		echo '<p>';
-		echo '<a class="woocommerce-button button" href="' . esc_url( $pdf ) . '">' . esc_html__( 'Descargar PDF', 'facturacion-cfdi' ) . '</a> ';
-		echo '<a class="woocommerce-button button" href="' . esc_url( $xml ) . '">' . esc_html__( 'Descargar XML', 'facturacion-cfdi' ) . '</a>';
+		echo '<a class="woocommerce-button button" href="' . esc_url( $pdf ) . '">' . esc_html__( 'Descargar PDF', 'facturacionmozart-woocommerce-plugin' ) . '</a> ';
+		echo '<a class="woocommerce-button button" href="' . esc_url( $xml ) . '">' . esc_html__( 'Descargar XML', 'facturacionmozart-woocommerce-plugin' ) . '</a>';
 		echo '</p>';
 	}
 
@@ -166,19 +166,19 @@ class FCFDI_My_Account {
 		$formato  = ( isset( $_GET['formato'] ) && 'pdf' === $_GET['formato'] ) ? 'pdf' : 'xml';
 
 		if ( ! is_user_logged_in() ) {
-			wp_die( esc_html__( 'Debes iniciar sesión.', 'facturacion-cfdi' ), '', array( 'response' => 401 ) );
+			wp_die( esc_html__( 'Debes iniciar sesión.', 'facturacionmozart-woocommerce-plugin' ), '', array( 'response' => 401 ) );
 		}
 		check_admin_referer( self::ACTION . '_' . $order_id );
 
 		$order = wc_get_order( $order_id );
 		if ( ! $order ) {
-			wp_die( esc_html__( 'Pedido no encontrado.', 'facturacion-cfdi' ), '', array( 'response' => 404 ) );
+			wp_die( esc_html__( 'Pedido no encontrado.', 'facturacionmozart-woocommerce-plugin' ), '', array( 'response' => 404 ) );
 		}
 
 		// Solo el dueño del pedido (o quien pueda gestionar pedidos) descarga.
 		$es_dueno = (int) $order->get_user_id() === get_current_user_id();
 		if ( ! $es_dueno && ! current_user_can( 'manage_woocommerce' ) ) {
-			wp_die( esc_html__( 'No autorizado.', 'facturacion-cfdi' ), '', array( 'response' => 403 ) );
+			wp_die( esc_html__( 'No autorizado.', 'facturacionmozart-woocommerce-plugin' ), '', array( 'response' => 403 ) );
 		}
 
 		$factura_id = $order->get_meta( '_fcfdi_factura_id' );
@@ -186,14 +186,14 @@ class FCFDI_My_Account {
 		// Timbrada o cancelada: en ambos casos el CFDI existe y debe poder descargarse
 		// (el SAT obliga a conservar el cancelado).
 		if ( ! $factura_id || ! in_array( $estatus, array( 'timbrada', 'cancelada' ), true ) ) {
-			wp_die( esc_html__( 'La factura aún no está disponible.', 'facturacion-cfdi' ), '', array( 'response' => 409 ) );
+			wp_die( esc_html__( 'La factura aún no está disponible.', 'facturacionmozart-woocommerce-plugin' ), '', array( 'response' => 409 ) );
 		}
 
 		$client = new FCFDI_Api_Client();
 		$res    = $client->descargar( $factura_id, $formato );
 
 		if ( is_wp_error( $res ) || (int) $res['code'] !== 200 ) {
-			wp_die( esc_html__( 'No fue posible obtener el archivo del puente.', 'facturacion-cfdi' ), '', array( 'response' => 502 ) );
+			wp_die( esc_html__( 'No fue posible obtener el archivo del puente.', 'facturacionmozart-woocommerce-plugin' ), '', array( 'response' => 502 ) );
 		}
 
 		$tipo     = ( 'pdf' === $formato ) ? 'application/pdf' : 'application/xml';

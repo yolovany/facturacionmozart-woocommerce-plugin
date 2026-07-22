@@ -63,7 +63,7 @@ class FCFDI_Cancel {
 		$res    = $client->cancelar( $factura_id, $motivo, $folio );
 
 		if ( is_wp_error( $res ) ) {
-			$order->add_order_note( '⚠️ ' . sprintf( __( 'No se pudo cancelar el CFDI: %s', 'facturacion-cfdi' ), $res->get_error_message() ) );
+			$order->add_order_note( '⚠️ ' . sprintf( __( 'No se pudo cancelar el CFDI: %s', 'facturacionmozart-woocommerce-plugin' ), $res->get_error_message() ) );
 			return false;
 		}
 
@@ -73,13 +73,13 @@ class FCFDI_Cancel {
 		if ( 200 === $code && isset( $body['estatus'] ) && 'cancelada' === $body['estatus'] ) {
 			$order->update_meta_data( '_fcfdi_estatus', 'cancelada' );
 			$order->save();
-			$order->add_order_note( __( 'CFDI cancelado ante el SAT.', 'facturacion-cfdi' ) );
+			$order->add_order_note( __( 'CFDI cancelado ante el SAT.', 'facturacionmozart-woocommerce-plugin' ) );
 			return true;
 		}
 
 		$codigo  = isset( $body['codigo'] ) ? $body['codigo'] : ( 'HTTP_' . $code );
 		$mensaje = isset( $body['mensaje'] ) ? $body['mensaje'] : '';
-		$order->add_order_note( '⚠️ ' . sprintf( __( 'Cancelación de CFDI rechazada (%1$s): %2$s', 'facturacion-cfdi' ), $codigo, $mensaje ) );
+		$order->add_order_note( '⚠️ ' . sprintf( __( 'Cancelación de CFDI rechazada (%1$s): %2$s', 'facturacionmozart-woocommerce-plugin' ), $codigo, $mensaje ) );
 		return false;
 	}
 }

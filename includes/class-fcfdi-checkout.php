@@ -101,22 +101,22 @@ class FCFDI_Checkout {
 	 */
 	public static function mensaje_error( $codigo, $fallback = '' ) {
 		$mapa = array(
-			'RFC_FALTANTE'          => __( 'Captura tu RFC para poder facturar.', 'facturacion-cfdi' ),
-			'RFC_FORMATO'           => __( 'El RFC no tiene un formato válido. Revísalo en tu Constancia de Situación Fiscal.', 'facturacion-cfdi' ),
-			'REGIMEN_FALTANTE'      => __( 'Selecciona tu régimen fiscal.', 'facturacion-cfdi' ),
-			'REGIMEN_INVALIDO'      => __( 'El régimen fiscal seleccionado no es válido.', 'facturacion-cfdi' ),
-			'CP_FALTANTE'           => __( 'Captura tu código postal fiscal.', 'facturacion-cfdi' ),
-			'CP_FORMATO'            => __( 'El código postal fiscal debe tener 5 dígitos.', 'facturacion-cfdi' ),
-			'USO_CFDI_FALTANTE'     => __( 'Selecciona el uso de CFDI.', 'facturacion-cfdi' ),
-			'USO_CFDI_INCOMPATIBLE' => __( 'El uso de CFDI no aplica a tu régimen fiscal. Elige uno de la lista.', 'facturacion-cfdi' ),
-			'CFDI40147'             => __( 'Tu RFC y código postal no coinciden con el registro del SAT. Verifica ambos en tu Constancia de Situación Fiscal.', 'facturacion-cfdi' ),
-			'CFDI40157'             => __( 'El régimen fiscal no corresponde a tu RFC ante el SAT. Revisa tu Constancia de Situación Fiscal.', 'facturacion-cfdi' ),
-			'SIN_RECEPTOR'          => __( 'Faltan tus datos fiscales para facturar.', 'facturacion-cfdi' ),
+			'RFC_FALTANTE'          => __( 'Captura tu RFC para poder facturar.', 'facturacionmozart-woocommerce-plugin' ),
+			'RFC_FORMATO'           => __( 'El RFC no tiene un formato válido. Revísalo en tu Constancia de Situación Fiscal.', 'facturacionmozart-woocommerce-plugin' ),
+			'REGIMEN_FALTANTE'      => __( 'Selecciona tu régimen fiscal.', 'facturacionmozart-woocommerce-plugin' ),
+			'REGIMEN_INVALIDO'      => __( 'El régimen fiscal seleccionado no es válido.', 'facturacionmozart-woocommerce-plugin' ),
+			'CP_FALTANTE'           => __( 'Captura tu código postal fiscal.', 'facturacionmozart-woocommerce-plugin' ),
+			'CP_FORMATO'            => __( 'El código postal fiscal debe tener 5 dígitos.', 'facturacionmozart-woocommerce-plugin' ),
+			'USO_CFDI_FALTANTE'     => __( 'Selecciona el uso de CFDI.', 'facturacionmozart-woocommerce-plugin' ),
+			'USO_CFDI_INCOMPATIBLE' => __( 'El uso de CFDI no aplica a tu régimen fiscal. Elige uno de la lista.', 'facturacionmozart-woocommerce-plugin' ),
+			'CFDI40147'             => __( 'Tu RFC y código postal no coinciden con el registro del SAT. Verifica ambos en tu Constancia de Situación Fiscal.', 'facturacionmozart-woocommerce-plugin' ),
+			'CFDI40157'             => __( 'El régimen fiscal no corresponde a tu RFC ante el SAT. Revisa tu Constancia de Situación Fiscal.', 'facturacionmozart-woocommerce-plugin' ),
+			'SIN_RECEPTOR'          => __( 'Faltan tus datos fiscales para facturar.', 'facturacionmozart-woocommerce-plugin' ),
 		);
 		if ( isset( $mapa[ $codigo ] ) ) {
 			return $mapa[ $codigo ];
 		}
-		return $fallback ? $fallback : __( 'No pudimos validar tus datos fiscales. Revísalos e intenta de nuevo.', 'facturacion-cfdi' );
+		return $fallback ? $fallback : __( 'No pudimos validar tus datos fiscales. Revísalos e intenta de nuevo.', 'facturacionmozart-woocommerce-plugin' );
 	}
 
 	/**
@@ -172,14 +172,14 @@ class FCFDI_Checkout {
 	 * @param WC_Checkout $checkout Checkout.
 	 */
 	public static function campos( $checkout ) {
-		echo '<div id="fcfdi-fiscal"><h3>' . esc_html__( 'Facturación (CFDI)', 'facturacion-cfdi' ) . '</h3>';
+		echo '<div id="fcfdi-fiscal"><h3>' . esc_html__( 'Facturación (CFDI)', 'facturacionmozart-woocommerce-plugin' ) . '</h3>';
 
 		woocommerce_form_field(
 			'fcfdi_requiere_factura',
 			array(
 				'type'  => 'checkbox',
 				'class' => array( 'fcfdi-requiere' ),
-				'label' => __( 'Requiero factura', 'facturacion-cfdi' ),
+				'label' => __( 'Requiero factura', 'facturacionmozart-woocommerce-plugin' ),
 			),
 			$checkout->get_value( 'fcfdi_requiere_factura' )
 		);
@@ -191,7 +191,7 @@ class FCFDI_Checkout {
 			array(
 				'type'        => 'text',
 				'class'       => array( 'form-row-wide' ),
-				'label'       => __( 'RFC', 'facturacion-cfdi' ),
+				'label'       => __( 'RFC', 'facturacionmozart-woocommerce-plugin' ),
 				'placeholder' => 'XAXX010101000',
 			),
 			$checkout->get_value( 'fcfdi_rfc' )
@@ -202,7 +202,7 @@ class FCFDI_Checkout {
 			array(
 				'type'  => 'text',
 				'class' => array( 'form-row-wide' ),
-				'label' => __( 'Razón social (como en la Constancia de Situación Fiscal)', 'facturacion-cfdi' ),
+				'label' => __( 'Razón social (como en la Constancia de Situación Fiscal)', 'facturacionmozart-woocommerce-plugin' ),
 			),
 			$checkout->get_value( 'fcfdi_razon_social' )
 		);
@@ -212,7 +212,7 @@ class FCFDI_Checkout {
 			array(
 				'type'        => 'text',
 				'class'       => array( 'form-row-first' ),
-				'label'       => __( 'Código postal fiscal', 'facturacion-cfdi' ),
+				'label'       => __( 'Código postal fiscal', 'facturacionmozart-woocommerce-plugin' ),
 				'placeholder' => '00000',
 			),
 			$checkout->get_value( 'fcfdi_cp' )
@@ -223,8 +223,8 @@ class FCFDI_Checkout {
 			array(
 				'type'    => 'select',
 				'class'   => array( 'form-row-last' ),
-				'label'   => __( 'Régimen fiscal', 'facturacion-cfdi' ),
-				'options' => array( '' => __( 'Selecciona…', 'facturacion-cfdi' ) ) + self::regimenes(),
+				'label'   => __( 'Régimen fiscal', 'facturacionmozart-woocommerce-plugin' ),
+				'options' => array( '' => __( 'Selecciona…', 'facturacionmozart-woocommerce-plugin' ) ) + self::regimenes(),
 			),
 			$checkout->get_value( 'fcfdi_regimen_fiscal' )
 		);
@@ -234,8 +234,8 @@ class FCFDI_Checkout {
 			array(
 				'type'    => 'select',
 				'class'   => array( 'form-row-wide' ),
-				'label'   => __( 'Uso de CFDI', 'facturacion-cfdi' ),
-				'options' => array( '' => __( 'Selecciona…', 'facturacion-cfdi' ) ) + self::usos_cfdi(),
+				'label'   => __( 'Uso de CFDI', 'facturacionmozart-woocommerce-plugin' ),
+				'options' => array( '' => __( 'Selecciona…', 'facturacionmozart-woocommerce-plugin' ) ) + self::usos_cfdi(),
 			),
 			$checkout->get_value( 'fcfdi_uso_cfdi' )
 		);
@@ -279,19 +279,19 @@ class FCFDI_Checkout {
 		// phpcs:enable
 
 		if ( ! preg_match( '/^([A-ZÑ&]{3,4})\d{6}([A-Z\d]{3})$/', $rfc ) ) {
-			wc_add_notice( __( 'El RFC no tiene un formato válido.', 'facturacion-cfdi' ), 'error' );
+			wc_add_notice( __( 'El RFC no tiene un formato válido.', 'facturacionmozart-woocommerce-plugin' ), 'error' );
 		}
 		if ( '' === $razon ) {
-			wc_add_notice( __( 'Captura la razón social para facturar.', 'facturacion-cfdi' ), 'error' );
+			wc_add_notice( __( 'Captura la razón social para facturar.', 'facturacionmozart-woocommerce-plugin' ), 'error' );
 		}
 		if ( ! preg_match( '/^\d{5}$/', $cp ) ) {
-			wc_add_notice( __( 'El código postal fiscal debe tener 5 dígitos.', 'facturacion-cfdi' ), 'error' );
+			wc_add_notice( __( 'El código postal fiscal debe tener 5 dígitos.', 'facturacionmozart-woocommerce-plugin' ), 'error' );
 		}
 		if ( '' === $regimen ) {
-			wc_add_notice( __( 'Selecciona el régimen fiscal.', 'facturacion-cfdi' ), 'error' );
+			wc_add_notice( __( 'Selecciona el régimen fiscal.', 'facturacionmozart-woocommerce-plugin' ), 'error' );
 		}
 		if ( '' === $uso ) {
-			wc_add_notice( __( 'Selecciona el uso de CFDI.', 'facturacion-cfdi' ), 'error' );
+			wc_add_notice( __( 'Selecciona el uso de CFDI.', 'facturacionmozart-woocommerce-plugin' ), 'error' );
 		}
 		if ( '' !== $uso && '' !== $regimen && ! self::combo_valido( $uso, $regimen ) ) {
 			wc_add_notice( self::mensaje_error( 'USO_CFDI_INCOMPATIBLE' ), 'error' );

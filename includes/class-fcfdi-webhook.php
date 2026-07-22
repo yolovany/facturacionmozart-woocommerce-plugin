@@ -82,7 +82,7 @@ class FCFDI_Webhook {
 			}
 			$order->save();
 			$order->add_order_note(
-				sprintf( __( 'CFDI timbrado (webhook). UUID: %s', 'facturacion-cfdi' ), $request->get_param( 'uuid' ) )
+				sprintf( __( 'CFDI timbrado (webhook). UUID: %s', 'facturacionmozart-woocommerce-plugin' ), $request->get_param( 'uuid' ) )
 			);
 		} elseif ( 'error' === $estatus ) {
 			$codigo  = sanitize_text_field( (string) $request->get_param( 'codigo' ) );
@@ -90,7 +90,7 @@ class FCFDI_Webhook {
 			$order->update_meta_data( '_fcfdi_estatus', 'error' );
 			$order->update_meta_data( '_fcfdi_error', $codigo . ': ' . $mensaje );
 			$order->save();
-			$order->add_order_note( '⚠️ ' . sprintf( __( 'Error de facturación (webhook) %1$s: %2$s', 'facturacion-cfdi' ), $codigo, $mensaje ) );
+			$order->add_order_note( '⚠️ ' . sprintf( __( 'Error de facturación (webhook) %1$s: %2$s', 'facturacionmozart-woocommerce-plugin' ), $codigo, $mensaje ) );
 		}
 
 		return new WP_REST_Response( array( 'ok' => true ), 200 );

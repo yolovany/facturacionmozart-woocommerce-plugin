@@ -60,7 +60,9 @@ services:
     volumes:
       - wp_data:/var/www/html
       # El plugin se monta EN VIVO desde el repo: editas código y refrescas, sin rebuild.
-      - ../facturacion-cfdi:/var/www/html/wp-content/plugins/facturacion-cfdi
+      - ../facturacionmozart-woocommerce-plugin.php:/var/www/html/wp-content/plugins/facturacionmozart-woocommerce-plugin/facturacionmozart-woocommerce-plugin.php
+      - ../includes:/var/www/html/wp-content/plugins/facturacionmozart-woocommerce-plugin/includes
+      - ../readme.txt:/var/www/html/wp-content/plugins/facturacionmozart-woocommerce-plugin/readme.txt
       # Marca de la tienda demo "Botica Serena" (mu-plugins de carga obligatoria).
       - ../demo/mu-plugins:/var/www/html/wp-content/mu-plugins:ro
     healthcheck:
@@ -95,7 +97,9 @@ services:
       - "host.docker.internal:host-gateway"
     volumes:
       - wp_data:/var/www/html
-      - ../facturacion-cfdi:/var/www/html/wp-content/plugins/facturacion-cfdi
+      - ../facturacionmozart-woocommerce-plugin.php:/var/www/html/wp-content/plugins/facturacionmozart-woocommerce-plugin/facturacionmozart-woocommerce-plugin.php
+      - ../includes:/var/www/html/wp-content/plugins/facturacionmozart-woocommerce-plugin/includes
+      - ../readme.txt:/var/www/html/wp-content/plugins/facturacionmozart-woocommerce-plugin/readme.txt
       - ../demo/mu-plugins:/var/www/html/wp-content/mu-plugins:ro
       # Scripts de la tienda demo Botica Serena (setup-store.php, make-images.php).
       - ../demo:/demo:ro
@@ -121,7 +125,9 @@ services:
       - "host.docker.internal:host-gateway"
     volumes:
       - wp_data:/var/www/html
-      - ../facturacion-cfdi:/var/www/html/wp-content/plugins/facturacion-cfdi
+      - ../facturacionmozart-woocommerce-plugin.php:/var/www/html/wp-content/plugins/facturacionmozart-woocommerce-plugin/facturacionmozart-woocommerce-plugin.php
+      - ../includes:/var/www/html/wp-content/plugins/facturacionmozart-woocommerce-plugin/includes
+      - ../readme.txt:/var/www/html/wp-content/plugins/facturacionmozart-woocommerce-plugin/readme.txt
       - ../demo/mu-plugins:/var/www/html/wp-content/mu-plugins:ro
     # Espera a que WP esté instalado; luego corre cron + Action Scheduler en bucle.
     entrypoint:

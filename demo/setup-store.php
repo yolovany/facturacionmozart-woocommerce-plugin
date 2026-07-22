@@ -4,7 +4,7 @@
  * plugin de facturación CFDI de forma inmersiva. Idempotente.
  *
  * Uso:  wp eval-file setup-store.php
- * Requisitos: WordPress + WooCommerce + plugin facturacion-cfdi activos.
+ * Requisitos: WordPress + WooCommerce + plugin facturacionmozart-woocommerce-plugin activos.
  * Marca y productos ficticios, creados solo para esta demo.
  */
 

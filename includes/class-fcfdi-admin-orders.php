@@ -62,7 +62,7 @@ class FCFDI_Admin_Orders {
 	 * @return array
 	 */
 	public static function columna( $cols ) {
-		$cols['fcfdi_estatus'] = __( 'CFDI', 'facturacion-cfdi' );
+		$cols['fcfdi_estatus'] = __( 'CFDI', 'facturacionmozart-woocommerce-plugin' );
 		return $cols;
 	}
 
@@ -121,12 +121,12 @@ class FCFDI_Admin_Orders {
 				return $acciones;
 			}
 			if ( 'timbrada' === $estatus ) {
-				$acciones['fcfdi_cancelar'] = __( 'Cancelar CFDI ante el SAT', 'facturacion-cfdi' );
+				$acciones['fcfdi_cancelar'] = __( 'Cancelar CFDI ante el SAT', 'facturacionmozart-woocommerce-plugin' );
 			} elseif ( 'cancelada' !== $estatus ) {
-				$acciones['fcfdi_reintentar'] = __( 'Reintentar facturación CFDI', 'facturacion-cfdi' );
+				$acciones['fcfdi_reintentar'] = __( 'Reintentar facturación CFDI', 'facturacionmozart-woocommerce-plugin' );
 				// Sólo ofrece "pedir corrección" si el fallo es un dato que el cliente arregla.
 				if ( 'error' === $estatus && in_array( self::codigo_error( $theorder ), self::CODIGOS_CORREGIBLES, true ) ) {
-					$acciones['fcfdi_pedir_correccion'] = __( 'Pedir al cliente corregir datos fiscales', 'facturacion-cfdi' );
+					$acciones['fcfdi_pedir_correccion'] = __( 'Pedir al cliente corregir datos fiscales', 'facturacionmozart-woocommerce-plugin' );
 				}
 			}
 		}
@@ -154,7 +154,7 @@ class FCFDI_Admin_Orders {
 			$order->delete_meta_data( $meta );
 		}
 		$order->save();
-		$order->add_order_note( __( 'Reintento de facturación CFDI solicitado manualmente.', 'facturacion-cfdi' ) );
+		$order->add_order_note( __( 'Reintento de facturación CFDI solicitado manualmente.', 'facturacionmozart-woocommerce-plugin' ) );
 
 		if ( class_exists( 'FCFDI_Order_Handler' ) ) {
 			FCFDI_Order_Handler::on_pagado( $order->get_id() );
@@ -172,7 +172,7 @@ class FCFDI_Admin_Orders {
 		$codigo = self::codigo_error( $order );
 		$motivo = class_exists( 'FCFDI_Checkout' )
 			? FCFDI_Checkout::mensaje_error( $codigo )
-			: __( 'Revisa tus datos fiscales.', 'facturacion-cfdi' );
+			: __( 'Revisa tus datos fiscales.', 'facturacionmozart-woocommerce-plugin' );
 
 		// Habilita el formulario de corrección en la vista de pedido del cliente.
 		$order->update_meta_data( '_fcfdi_correccion_solicitada', 'si' );
@@ -183,7 +183,7 @@ class FCFDI_Admin_Orders {
 		$tienda = get_bloginfo( 'name' );
 		$asunto = sprintf(
 			/* translators: 1: nombre tienda, 2: número de pedido */
-			__( '[%1$s] Necesitamos corregir los datos de tu factura (pedido #%2$s)', 'facturacion-cfdi' ),
+			__( '[%1$s] Necesitamos corregir los datos de tu factura (pedido #%2$s)', 'facturacionmozart-woocommerce-plugin' ),
 			$tienda,
 			$order->get_order_number()
 		);
@@ -191,7 +191,7 @@ class FCFDI_Admin_Orders {
 			/* translators: 1: número de pedido, 2: motivo, 3: URL del pedido */
 			__(
 				"Hola,\n\nTu pago del pedido #%1\$s quedó registrado, pero no pudimos generar tu factura (CFDI) por lo siguiente:\n\n%2\$s\n\nPor favor corrige tus datos fiscales y vuelve a solicitar la factura desde tu pedido:\n%3\$s\n\nGracias.",
-				'facturacion-cfdi'
+				'facturacionmozart-woocommerce-plugin'
 			),
 			$order->get_order_number(),
 			$motivo,
@@ -202,8 +202,8 @@ class FCFDI_Admin_Orders {
 		$order->add_order_note(
 			$enviado
 				/* translators: %s: correo del cliente */
-				? sprintf( __( '✉️ Se pidió al cliente (%s) corregir sus datos fiscales.', 'facturacion-cfdi' ), $para )
-				: __( '⚠️ No se pudo enviar el correo de corrección al cliente.', 'facturacion-cfdi' )
+				? sprintf( __( '✉️ Se pidió al cliente (%s) corregir sus datos fiscales.', 'facturacionmozart-woocommerce-plugin' ), $para )
+				: __( '⚠️ No se pudo enviar el correo de corrección al cliente.', 'facturacionmozart-woocommerce-plugin' )
 		);
 	}
 }

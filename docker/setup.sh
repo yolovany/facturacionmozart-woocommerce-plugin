@@ -32,7 +32,7 @@ $WP plugin is-installed woocommerce >/dev/null 2>&1 || $WP plugin install woocom
 $WP plugin activate woocommerce || true
 
 echo "==> Activando plugin Facturación CFDI..."
-$WP plugin activate facturacion-cfdi
+$WP plugin activate facturacionmozart-woocommerce-plugin
 
 echo "==> Datos de tienda mínimos (MXN, país MX)..."
 $WP option update woocommerce_currency "MXN"

@@ -8,7 +8,7 @@
  * Requires PHP:      7.4
  * Author:            Infotek
  * License:           GPL-2.0-or-later
- * Text Domain:       facturacion-cfdi
+ * Text Domain:       facturacionmozart-woocommerce-plugin
  * WC requires at least: 6.0
  * WC tested up to:   9.0
  *
@@ -47,7 +47,7 @@ add_action(
 				'admin_notices',
 				function () {
 					echo '<div class="notice notice-error"><p>';
-					esc_html_e( 'Facturación CFDI para WooCommerce requiere que WooCommerce esté instalado y activo.', 'facturacion-cfdi' );
+					esc_html_e( 'Facturación CFDI para WooCommerce requiere que WooCommerce esté instalado y activo.', 'facturacionmozart-woocommerce-plugin' );
 					echo '</p></div>';
 				}
 			);
@@ -77,6 +77,6 @@ add_action(
 		FCFDI_Cancel::init();
 		FCFDI_Cliente::init();
 
-		load_plugin_textdomain( 'facturacion-cfdi', false, dirname( plugin_basename( __FILE__ ) ) . '/languages' );
+		load_plugin_textdomain( 'facturacionmozart-woocommerce-plugin', false, dirname( plugin_basename( __FILE__ ) ) . '/languages' );
 	}
 );

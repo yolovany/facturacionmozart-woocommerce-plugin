@@ -83,13 +83,13 @@ class FCFDI_Order_Handler {
 			$order->update_meta_data( '_fcfdi_retener_completado', 'si' );
 			$order->save();
 			if ( ! $order->has_status( 'on-hold' ) ) {
-				$order->update_status( 'on-hold', __( 'Retenido: facturación CFDI en proceso.', 'facturacion-cfdi' ) );
+				$order->update_status( 'on-hold', __( 'Retenido: facturación CFDI en proceso.', 'facturacionmozart-woocommerce-plugin' ) );
 			}
 		} else {
 			$order->save();
 		}
 
-		as_enqueue_async_action( self::HOOK_ENVIAR, array( 'order_id' => $order_id ), 'facturacion-cfdi' );
+		as_enqueue_async_action( self::HOOK_ENVIAR, array( 'order_id' => $order_id ), 'facturacionmozart-woocommerce-plugin' );
 	}
 
 	/**
@@ -108,7 +108,7 @@ class FCFDI_Order_Handler {
 		$order->update_meta_data( '_fcfdi_estatus_previo', '' );
 		$order->save();
 		if ( $order->has_status( 'on-hold' ) ) {
-			$order->update_status( $previo, __( 'CFDI timbrado: se libera el pedido.', 'facturacion-cfdi' ) );
+			$order->update_status( $previo, __( 'CFDI timbrado: se libera el pedido.', 'facturacionmozart-woocommerce-plugin' ) );
 		}
 	}
 
@@ -143,13 +143,13 @@ class FCFDI_Order_Handler {
 			$order->update_meta_data( '_fcfdi_estatus', isset( $body['estatus'] ) ? $body['estatus'] : 'en_proceso' );
 			$order->update_meta_data( '_fcfdi_poll_intentos', 0 );
 			$order->save();
-			$order->add_order_note( __( 'CFDI encolado en el puente de facturación.', 'facturacion-cfdi' ) );
+			$order->add_order_note( __( 'CFDI encolado en el puente de facturación.', 'facturacionmozart-woocommerce-plugin' ) );
 
 			as_schedule_single_action(
 				time() + self::backoff( self::BACKOFF_POLL, 0, 'fcfdi_backoff_poll' ),
 				self::HOOK_CONSULTAR,
 				array( 'order_id' => $order_id ),
-				'facturacion-cfdi'
+				'facturacionmozart-woocommerce-plugin'
 			);
 			return;
 		}
@@ -176,7 +176,7 @@ class FCFDI_Order_Handler {
 			$order->update_meta_data( '_fcfdi_estatus', 'error' );
 			$order->update_meta_data( '_fcfdi_error', $motivo );
 			$order->save();
-			$order->add_order_note( '⚠️ ' . sprintf( __( 'No se pudo enviar al puente tras varios intentos: %s', 'facturacion-cfdi' ), $motivo ) );
+			$order->add_order_note( '⚠️ ' . sprintf( __( 'No se pudo enviar al puente tras varios intentos: %s', 'facturacionmozart-woocommerce-plugin' ), $motivo ) );
 			self::escalar_si_retenido( $order, $motivo );
 			return;
 		}
@@ -185,7 +185,7 @@ class FCFDI_Order_Handler {
 			time() + self::backoff( self::BACKOFF_ENVIO, $intentos, 'fcfdi_backoff_envio' ),
 			self::HOOK_ENVIAR,
 			array( 'order_id' => $order->get_id() ),
-			'facturacion-cfdi'
+			'facturacionmozart-woocommerce-plugin'
 		);
 	}
 
@@ -235,7 +235,7 @@ class FCFDI_Order_Handler {
 		$res    = $client->consultar_estatus( $factura_id );
 
 		if ( is_wp_error( $res ) ) {
-			self::reprogramar_o_fallar( $order, __( 'Sin respuesta del puente al consultar estatus.', 'facturacion-cfdi' ) );
+			self::reprogramar_o_fallar( $order, __( 'Sin respuesta del puente al consultar estatus.', 'facturacionmozart-woocommerce-plugin' ) );
 			return;
 		}
 
@@ -251,7 +251,7 @@ class FCFDI_Order_Handler {
 			$order->add_order_note(
 				sprintf(
 					/* translators: %s: UUID del CFDI */
-					__( 'CFDI timbrado. UUID: %s', 'facturacion-cfdi' ),
+					__( 'CFDI timbrado. UUID: %s', 'facturacionmozart-woocommerce-plugin' ),
 					isset( $body['uuid'] ) ? $body['uuid'] : ''
 				)
 			);
@@ -265,7 +265,7 @@ class FCFDI_Order_Handler {
 		}
 
 		// Sigue en proceso: reprogramar el polling.
-		self::reprogramar_o_fallar( $order, __( 'El timbrado sigue en proceso tras varios intentos.', 'facturacion-cfdi' ) );
+		self::reprogramar_o_fallar( $order, __( 'El timbrado sigue en proceso tras varios intentos.', 'facturacionmozart-woocommerce-plugin' ) );
 	}
 
 	/**
@@ -293,7 +293,7 @@ class FCFDI_Order_Handler {
 			time() + self::backoff( self::BACKOFF_POLL, $intentos, 'fcfdi_backoff_poll' ),
 			self::HOOK_CONSULTAR,
 			array( 'order_id' => $order->get_id() ),
-			'facturacion-cfdi'
+			'facturacionmozart-woocommerce-plugin'
 		);
 	}
 
@@ -306,11 +306,11 @@ class FCFDI_Order_Handler {
 	 */
 	private static function registrar_error( $order, $body, $code ) {
 		$codigo  = isset( $body['codigo'] ) ? $body['codigo'] : 'HTTP_' . $code;
-		$mensaje = isset( $body['mensaje'] ) ? $body['mensaje'] : __( 'Error desconocido del puente.', 'facturacion-cfdi' );
+		$mensaje = isset( $body['mensaje'] ) ? $body['mensaje'] : __( 'Error desconocido del puente.', 'facturacionmozart-woocommerce-plugin' );
 		$order->update_meta_data( '_fcfdi_estatus', 'error' );
 		$order->update_meta_data( '_fcfdi_error', $codigo . ': ' . $mensaje );
 		$order->save();
-		$order->add_order_note( '⚠️ ' . sprintf( __( 'Error de facturación (%1$s): %2$s', 'facturacion-cfdi' ), $codigo, $mensaje ) );
+		$order->add_order_note( '⚠️ ' . sprintf( __( 'Error de facturación (%1$s): %2$s', 'facturacionmozart-woocommerce-plugin' ), $codigo, $mensaje ) );
 		self::escalar_si_retenido( $order, $codigo . ': ' . $mensaje );
 	}
 
@@ -329,7 +329,7 @@ class FCFDI_Order_Handler {
 		$order->add_order_note(
 			'🚨 ' . sprintf(
 				/* translators: %s: motivo del fallo */
-				__( 'Pedido retenido en espera de CFDI. Requiere atención manual: %s', 'facturacion-cfdi' ),
+				__( 'Pedido retenido en espera de CFDI. Requiere atención manual: %s', 'facturacionmozart-woocommerce-plugin' ),
 				$motivo
 			)
 		);
@@ -343,8 +343,8 @@ class FCFDI_Order_Handler {
 		do_action( 'fcfdi_facturacion_retenida', $order, $motivo );
 		wp_mail(
 			get_option( 'admin_email' ),
-			sprintf( __( '[%1$s] Pedido #%2$s retenido: falló la facturación CFDI', 'facturacion-cfdi' ), get_bloginfo( 'name' ), $order->get_order_number() ),
-			sprintf( __( "El pedido #%1\$s pidió factura pero el timbrado no se completó y quedó retenido (en espera) en vez de completado.\n\nMotivo: %2\$s\n\nRevísalo en el admin de WooCommerce.", 'facturacion-cfdi' ), $order->get_order_number(), $motivo )
+			sprintf( __( '[%1$s] Pedido #%2$s retenido: falló la facturación CFDI', 'facturacionmozart-woocommerce-plugin' ), get_bloginfo( 'name' ), $order->get_order_number() ),
+			sprintf( __( "El pedido #%1\$s pidió factura pero el timbrado no se completó y quedó retenido (en espera) en vez de completado.\n\nMotivo: %2\$s\n\nRevísalo en el admin de WooCommerce.", 'facturacionmozart-woocommerce-plugin' ), $order->get_order_number(), $motivo )
 		);
 	}
 
@@ -463,7 +463,7 @@ class FCFDI_Order_Handler {
 			$tasa_envio = $envio > 0 ? round( $envio_tax / $envio, 6 ) : 0.0;
 			$concepto_envio = array(
 				'sku'             => 'ENVIO',
-				'descripcion'     => __( 'Servicio de envío', 'facturacion-cfdi' ),
+				'descripcion'     => __( 'Servicio de envío', 'facturacionmozart-woocommerce-plugin' ),
 				'cantidad'        => 1,
 				'valor_unitario'  => round( $envio, 2 ),
 				'importe'         => round( $envio, 2 ),

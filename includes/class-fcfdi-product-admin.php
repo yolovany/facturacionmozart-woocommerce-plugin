@@ -26,8 +26,8 @@ class FCFDI_Product_Admin {
 		woocommerce_wp_text_input(
 			array(
 				'id'          => '_fcfdi_clave_prod_serv',
-				'label'       => __( 'SAT ClaveProdServ', 'facturacion-cfdi' ),
-				'description' => __( 'Clave de producto/servicio del catálogo del SAT. Si se deja vacío se usa el default del comercio.', 'facturacion-cfdi' ),
+				'label'       => __( 'SAT ClaveProdServ', 'facturacionmozart-woocommerce-plugin' ),
+				'description' => __( 'Clave de producto/servicio del catálogo del SAT. Si se deja vacío se usa el default del comercio.', 'facturacionmozart-woocommerce-plugin' ),
 				'desc_tip'    => true,
 				'custom_attributes' => array( 'maxlength' => '8' ),
 			)
@@ -36,8 +36,8 @@ class FCFDI_Product_Admin {
 		woocommerce_wp_text_input(
 			array(
 				'id'          => '_fcfdi_clave_unidad',
-				'label'       => __( 'SAT ClaveUnidad', 'facturacion-cfdi' ),
-				'description' => __( 'Clave de unidad del catálogo del SAT (p.ej. H87 = Pieza).', 'facturacion-cfdi' ),
+				'label'       => __( 'SAT ClaveUnidad', 'facturacionmozart-woocommerce-plugin' ),
+				'description' => __( 'Clave de unidad del catálogo del SAT (p.ej. H87 = Pieza).', 'facturacionmozart-woocommerce-plugin' ),
 				'desc_tip'    => true,
 				'custom_attributes' => array( 'maxlength' => '3' ),
 			)

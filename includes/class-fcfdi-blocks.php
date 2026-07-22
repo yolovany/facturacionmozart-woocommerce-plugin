@@ -15,7 +15,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 class FCFDI_Blocks {
 
-	const NS = 'facturacion-cfdi';
+	const NS = 'facturacionmozart-woocommerce-plugin';
 
 	public static function init() {
 		add_action( 'woocommerce_init', array( __CLASS__, 'registrar' ) );
@@ -43,19 +43,19 @@ class FCFDI_Blocks {
 		$uso     = trim( (string) ( $fields[ self::field_id( 'uso-cfdi' ) ] ?? '' ) );
 
 		if ( ! preg_match( '/^([A-ZÑ&]{3,4})\d{6}([A-Z\d]{3})$/', $rfc ) ) {
-			$errors->add( 'fcfdi_rfc', __( 'El RFC no tiene un formato válido.', 'facturacion-cfdi' ) );
+			$errors->add( 'fcfdi_rfc', __( 'El RFC no tiene un formato válido.', 'facturacionmozart-woocommerce-plugin' ) );
 		}
 		if ( '' === $razon ) {
-			$errors->add( 'fcfdi_razon', __( 'Captura la razón social para facturar.', 'facturacion-cfdi' ) );
+			$errors->add( 'fcfdi_razon', __( 'Captura la razón social para facturar.', 'facturacionmozart-woocommerce-plugin' ) );
 		}
 		if ( ! preg_match( '/^\d{5}$/', $cp ) ) {
-			$errors->add( 'fcfdi_cp', __( 'El código postal fiscal debe tener 5 dígitos.', 'facturacion-cfdi' ) );
+			$errors->add( 'fcfdi_cp', __( 'El código postal fiscal debe tener 5 dígitos.', 'facturacionmozart-woocommerce-plugin' ) );
 		}
 		if ( '' === $regimen ) {
-			$errors->add( 'fcfdi_regimen', __( 'Selecciona el régimen fiscal.', 'facturacion-cfdi' ) );
+			$errors->add( 'fcfdi_regimen', __( 'Selecciona el régimen fiscal.', 'facturacionmozart-woocommerce-plugin' ) );
 		}
 		if ( '' === $uso ) {
-			$errors->add( 'fcfdi_uso', __( 'Selecciona el uso de CFDI.', 'facturacion-cfdi' ) );
+			$errors->add( 'fcfdi_uso', __( 'Selecciona el uso de CFDI.', 'facturacionmozart-woocommerce-plugin' ) );
 		}
 		if ( '' !== $uso && '' !== $regimen && class_exists( 'FCFDI_Checkout' ) && ! FCFDI_Checkout::combo_valido( $uso, $regimen ) ) {
 			$errors->add( 'fcfdi_uso_regimen', FCFDI_Checkout::mensaje_error( 'USO_CFDI_INCOMPATIBLE' ) );
@@ -102,7 +102,7 @@ class FCFDI_Blocks {
 		woocommerce_register_additional_checkout_field(
 			array(
 				'id'       => self::field_id( 'requiere-factura' ),
-				'label'    => __( 'Requiero factura', 'facturacion-cfdi' ),
+				'label'    => __( 'Requiero factura', 'facturacionmozart-woocommerce-plugin' ),
 				'location' => 'order',
 				'type'     => 'checkbox',
 			)
@@ -111,7 +111,7 @@ class FCFDI_Blocks {
 		woocommerce_register_additional_checkout_field(
 			array(
 				'id'       => self::field_id( 'rfc' ),
-				'label'    => __( 'RFC', 'facturacion-cfdi' ),
+				'label'    => __( 'RFC', 'facturacionmozart-woocommerce-plugin' ),
 				'location' => 'order',
 				'type'     => 'text',
 			)
@@ -120,7 +120,7 @@ class FCFDI_Blocks {
 		woocommerce_register_additional_checkout_field(
 			array(
 				'id'       => self::field_id( 'razon-social' ),
-				'label'    => __( 'Razón social', 'facturacion-cfdi' ),
+				'label'    => __( 'Razón social', 'facturacionmozart-woocommerce-plugin' ),
 				'location' => 'order',
 				'type'     => 'text',
 			)
@@ -129,7 +129,7 @@ class FCFDI_Blocks {
 		woocommerce_register_additional_checkout_field(
 			array(
 				'id'       => self::field_id( 'cp' ),
-				'label'    => __( 'Código postal fiscal', 'facturacion-cfdi' ),
+				'label'    => __( 'Código postal fiscal', 'facturacionmozart-woocommerce-plugin' ),
 				'location' => 'order',
 				'type'     => 'text',
 			)
@@ -138,7 +138,7 @@ class FCFDI_Blocks {
 		woocommerce_register_additional_checkout_field(
 			array(
 				'id'       => self::field_id( 'regimen-fiscal' ),
-				'label'    => __( 'Régimen fiscal', 'facturacion-cfdi' ),
+				'label'    => __( 'Régimen fiscal', 'facturacionmozart-woocommerce-plugin' ),
 				'location' => 'order',
 				'type'     => 'select',
 				'options'  => self::opciones( FCFDI_Checkout::regimenes() ),
@@ -148,7 +148,7 @@ class FCFDI_Blocks {
 		woocommerce_register_additional_checkout_field(
 			array(
 				'id'       => self::field_id( 'uso-cfdi' ),
-				'label'    => __( 'Uso de CFDI', 'facturacion-cfdi' ),
+				'label'    => __( 'Uso de CFDI', 'facturacionmozart-woocommerce-plugin' ),
 				'location' => 'order',
 				'type'     => 'select',
 				'options'  => self::opciones( FCFDI_Checkout::usos_cfdi() ),
