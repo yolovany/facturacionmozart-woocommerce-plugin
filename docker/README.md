@@ -46,7 +46,7 @@ Ajusta `bridge-proxy.conf` si tu backend usa otro puerto o no necesita la reescr
 # 1) (Opcional) Levanta tu backend/puente en :8080 con HTTPS desactivado para loopback.
 
 # 2) Levantar el stack (WordPress + DB + cron + proxy del puente)
-cd qa
+cd docker
 docker compose up -d
 
 # 3) Instalar WP + WooCommerce + activar el plugin (una vez)

@@ -23,7 +23,7 @@ Plugin de WordPress/WooCommerce que genera facturas CFDI (México) automáticame
 ## Demo y QA local
 
 - [`demo/`](demo/) — tienda demo ficticia ("Botica Serena") para ver el plugin funcionando de forma inmersiva: identidad, productos con claves SAT, checkout. Útil para entender el alcance del plugin sin adivinar a partir del código.
-- [`qa/`](qa/) — entorno Docker (WordPress + WooCommerce + plugin + demo) reproducible para desarrollo local. No incluye un backend de facturación: solo la tienda + plugin. Ver [qa/README.md](qa/README.md).
+- [`docker/`](docker/) — entorno Docker (WordPress + WooCommerce + plugin + demo) reproducible para desarrollo local. No incluye un backend de facturación: solo la tienda + plugin. Ver [docker/README.md](docker/README.md).
 
 ## Licencia
 
