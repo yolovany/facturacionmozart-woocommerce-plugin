@@ -4,7 +4,7 @@
 ![WordPress](https://img.shields.io/badge/WordPress-6.0%2B-21759b.svg)
 ![WooCommerce](https://img.shields.io/badge/WooCommerce-6.0%2B-96588a.svg)
 ![PHP](https://img.shields.io/badge/PHP-7.4%2B-777bb4.svg)
-![Version](https://img.shields.io/badge/version-1.11.5-success.svg)
+![Version](https://img.shields.io/badge/version-1.12.0-success.svg)
 
 Plugin de WordPress/WooCommerce que genera **facturas CFDI (México)** automáticamente
 para cada pedido, hablando por REST con un backend/puente de facturación propio.
@@ -23,6 +23,9 @@ para cada pedido, hablando por REST con un backend/puente de facturación propio
 - Cancelación de CFDI ante el SAT desde la página del pedido.
 - Portal del cliente: pestaña "Mis Facturas", perfil fiscal reutilizable con autorrelleno
   del checkout, solicitud de factura post-compra.
+- Cuenta sin fricción: al comprar se crea la cuenta del cliente automáticamente (sin
+  contraseña) y se guardan sus datos de facturación/envío; el acceso posterior es por
+  "enlace de acceso" al correo (un solo uso, con caducidad), sin contraseñas que recordar.
 - Webhook + polling para el estatus del timbrado; columna y acción de reintento en el
   admin de pedidos (HPOS y legacy).
 

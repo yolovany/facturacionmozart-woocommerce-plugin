@@ -6,7 +6,7 @@ Tested up to: 6.6
 Requires PHP: 7.4
 WC requires at least: 6.0
 WC tested up to: 9.0
-Stable tag: 1.11.5
+Stable tag: 1.12.0
 License: GPLv2 or later
 
 Genera facturas CFDI automáticamente para cada pedido de WooCommerce a través del puente REST del sistema de facturación.
@@ -18,6 +18,7 @@ El plugin conecta tu tienda WooCommerce con el sistema de facturación CFDI medi
 * El cliente puede marcar "Requiero factura" en el checkout y capturar RFC, razón social, régimen, código postal y uso de CFDI.
 * Si no solicita factura, el pedido se factura a público en general.
 * El CFDI timbrado (XML y PDF) queda disponible para descarga en "Mi cuenta", servido a través de un proxy autenticado (el token nunca llega al navegador).
+* Cuenta sin fricción: al comprar se crea automáticamente la cuenta del cliente (sin pedir contraseña) y se guardan sus datos de facturación/envío, para conservar su historial de facturas y autocompletar la próxima compra. El acceso posterior es por "enlace de acceso" al correo (un solo uso, con caducidad), sin contraseñas.
 
 == Configuración ==
 
@@ -40,8 +41,22 @@ El plugin conecta tu tienda WooCommerce con el sistema de facturación CFDI medi
 * `fcfdi_motivo_cancelacion` — motivo SAT de cancelación (por defecto 02).
 * `fcfdi_folio_sustitucion` — UUID sustituto para cancelación con motivo 01.
 * `fcfdi_emails_con_cfdi` — correos de WooCommerce donde se adjunta el CFDI.
+* `fcfdi_crear_cuenta_silenciosa` — activa/desactiva la creación automática de cuenta al comprar (por defecto true).
 
 == Changelog ==
+
+= 1.12.0 =
+* Cuenta silenciosa: al comprar como invitado se crea automáticamente la cuenta del
+  cliente (sin pedirle contraseña) si su correo aún no está registrado, y se le vinculan
+  el pedido y los datos capturados en el checkout (facturación y envío). Así conserva su
+  historial de facturas y la próxima compra se autocompleta.
+* Acceso sin contraseña ("enlace mágico"): desde Mi Cuenta el cliente pide un enlace de
+  acceso con su correo y entra con un token de un solo uso y con caducidad (30 min), sin
+  contraseñas que recordar. Filtro fcfdi_crear_cuenta_silenciosa para desactivar la
+  creación automática de cuenta.
+* Seguridad: si el correo ya pertenece a una cuenta, no se vincula ni se inicia sesión
+  automáticamente (evita apropiarse de una cuenta ajena); la respuesta a la solicitud de
+  enlace es uniforme (no revela qué correos existen).
 
 = 1.6.0 =
 * Entrega del CFDI: adjunta el XML y PDF al correo de pedido completado / factura de
