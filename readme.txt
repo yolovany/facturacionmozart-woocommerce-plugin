@@ -42,6 +42,7 @@ El plugin conecta tu tienda WooCommerce con el sistema de facturación CFDI medi
 * `fcfdi_folio_sustitucion` — UUID sustituto para cancelación con motivo 01.
 * `fcfdi_emails_con_cfdi` — correos de WooCommerce donde se adjunta el CFDI.
 * `fcfdi_crear_cuenta_silenciosa` — activa/desactiva la creación automática de cuenta al comprar (por defecto true).
+* `fcfdi_suprimir_email_cuenta_nueva` — suprime el correo nativo "Cuenta nueva" de WooCommerce en la creación silenciosa (por defecto true).
 
 == Changelog ==
 
@@ -60,6 +61,9 @@ El plugin conecta tu tienda WooCommerce con el sistema de facturación CFDI medi
   minuto por cuenta (anti email-bombing).
 * En "pedido recibido" se avisa al comprador que se creó su cuenta y cómo entrar (sin
   contraseña), solo cuando la cuenta se creó en silencio para ese pedido.
+* Se suprime el correo nativo "Cuenta nueva" de WooCommerce durante la creación
+  silenciosa (contradice el modelo sin contraseña y duplica el aviso propio); filtro
+  fcfdi_suprimir_email_cuenta_nueva para reactivarlo.
 
 = 1.6.0 =
 * Entrega del CFDI: adjunta el XML y PDF al correo de pedido completado / factura de

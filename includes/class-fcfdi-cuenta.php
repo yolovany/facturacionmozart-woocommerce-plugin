@@ -40,6 +40,14 @@ class FCFDI_Cuenta {
 	/** Mínimo entre envíos de enlace por cuenta (anti email-bombing), en segundos. */
 	const THROTTLE = 60;
 
+	/**
+	 * Bandera: mientras es true, se suprime el correo nativo "Cuenta nueva" de WooCommerce.
+	 * Se activa solo durante nuestra creación silenciosa (no afecta otros flujos de alta).
+	 *
+	 * @var bool
+	 */
+	private static $suprimiendo_email = false;
+
 	public static function init() {
 		// 1) Cuenta silenciosa al procesar el pedido (checkout clásico y de bloques).
 		//    Prioridad 5: corre ANTES de FCFDI_Cliente::guardar_perfil_de_pedido (10), para
@@ -56,6 +64,24 @@ class FCFDI_Cuenta {
 
 		// 3) Aviso en "pedido recibido" cuando se creó la cuenta en silencio.
 		add_action( 'woocommerce_thankyou', array( __CLASS__, 'aviso_cuenta_creada' ) );
+
+		// 4) Suprime el correo nativo "Cuenta nueva" de WooCommerce durante la creación
+		//    silenciosa: contradice el modelo sin contraseña (habla de "pon tu contraseña")
+		//    y duplica el aviso propio. Solo aplica a NUESTRAS altas, no a otras.
+		add_filter( 'woocommerce_email_enabled_customer_new_account', array( __CLASS__, 'filtrar_email_cuenta_nueva' ), 99 );
+	}
+
+	/**
+	 * Desactiva el correo "Cuenta nueva" mientras dura nuestra creación silenciosa.
+	 *
+	 * @param bool $enabled Si el correo está activo.
+	 * @return bool
+	 */
+	public static function filtrar_email_cuenta_nueva( $enabled ) {
+		if ( self::$suprimiendo_email && apply_filters( 'fcfdi_suprimir_email_cuenta_nueva', true ) ) {
+			return false;
+		}
+		return $enabled;
 	}
 
 	/**
@@ -94,6 +120,7 @@ class FCFDI_Cuenta {
 			return;
 		}
 
+		self::$suprimiendo_email = true;
 		$user_id = wc_create_new_customer(
 			$email,
 			'', // username: lo genera WooCommerce.
@@ -103,6 +130,7 @@ class FCFDI_Cuenta {
 				'last_name'  => $order->get_billing_last_name(),
 			)
 		);
+		self::$suprimiendo_email = false;
 		if ( is_wp_error( $user_id ) ) {
 			return;
 		}
