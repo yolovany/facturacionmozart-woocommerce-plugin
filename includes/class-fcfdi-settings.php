@@ -206,9 +206,31 @@ class FCFDI_Settings {
 		}
 		$code = (int) $res['code'];
 		if ( 200 === $code && isset( $res['body']['status'] ) && 'ok' === $res['body']['status'] ) {
-			$comercio = isset( $res['body']['comercio'] ) ? $res['body']['comercio'] : '';
-			$pruebas  = ! empty( $res['body']['timbrado_pruebas'] ) ? __( ' (modo PRUEBAS)', 'facturacionmozart-woocommerce-plugin' ) : '';
-			wp_send_json_success( '✅ ' . sprintf( __( 'Conexión correcta. Comercio: %1$s%2$s', 'facturacionmozart-woocommerce-plugin' ), $comercio, $pruebas ) );
+			$body     = $res['body'];
+			$comercio = isset( $body['comercio'] ) ? $body['comercio'] : '';
+			$pruebas  = ! empty( $body['timbrado_pruebas'] ) ? __( ' (modo PRUEBAS)', 'facturacionmozart-woocommerce-plugin' ) : '';
+			$mensaje  = '✅ ' . sprintf( __( 'Conexión correcta. Comercio: %1$s%2$s', 'facturacionmozart-woocommerce-plugin' ), $comercio, $pruebas );
+
+			// Diagnóstico del endurecimiento que reporta el puente. Son avisos, no errores:
+			// la conexión funciona igual, pero conviene dejar la configuración completa.
+			$avisos = array();
+			if ( isset( $body['esquema_fase2'] ) && ! $body['esquema_fase2'] ) {
+				$avisos[] = __( 'el puente aún opera con el esquema anterior (la migración no se ha aplicado)', 'facturacionmozart-woocommerce-plugin' );
+			}
+			if ( isset( $body['secreto_webhook'] ) && ! $body['secreto_webhook'] ) {
+				$avisos[] = __( 'el comercio no tiene secreto de webhook propio', 'facturacionmozart-woocommerce-plugin' );
+			}
+			if ( isset( $body['token_hasheado'] ) && ! $body['token_hasheado'] ) {
+				$avisos[] = __( 'el token aún se guarda sin cifrar en el puente', 'facturacionmozart-woocommerce-plugin' );
+			}
+			if ( isset( $body['dominio_configurado'] ) && ! $body['dominio_configurado'] ) {
+				$avisos[] = __( 'no hay dominio autorizado configurado para este comercio', 'facturacionmozart-woocommerce-plugin' );
+			}
+			if ( ! empty( $avisos ) ) {
+				$mensaje .= ' — ⚠️ ' . __( 'Pendiente:', 'facturacionmozart-woocommerce-plugin' ) . ' ' . implode( '; ', $avisos ) . '.';
+			}
+
+			wp_send_json_success( $mensaje );
 		}
 		if ( 401 === $code || 403 === $code ) {
 			wp_send_json_error( '❌ ' . __( 'Token inválido o IP no autorizada.', 'facturacionmozart-woocommerce-plugin' ) );
