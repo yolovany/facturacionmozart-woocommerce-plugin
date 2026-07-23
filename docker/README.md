@@ -137,8 +137,11 @@ docker compose -f docker-compose.demo.yml up -d
 ## Escenarios de prueba sugeridos
 
 El objetivo: **ningún dato fiscal malo debe cruzar el pago, y el carrito NO debe
-vaciarse**. Prueba en los **dos** checkouts (crea dos páginas: una con el shortcode
-`[woocommerce_checkout]` = clásico, y otra con el bloque "Finalizar compra" = bloques).
+vaciarse**. Prueba en los **dos** checkouts, que el demo ya deja creados:
+
+- **Clásico** (shortcode `[woocommerce_checkout]`): la página "Finalizar compra" en
+  `/checkout/`.
+- **De bloques** (bloque "Finalizar compra"): la página en `/finalizar-compra-bloques/`.
 
 | # | Escenario | Datos | Esperado |
 |---|---|---|---|

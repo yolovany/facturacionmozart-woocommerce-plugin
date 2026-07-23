@@ -15,7 +15,7 @@ arman la tienda sobre una instalación limpia.
 
 | Archivo | Qué hace |
 |---|---|
-| `setup-store.php` | Limpia contenido genérico, crea identidad, productos (con claves SAT), páginas y fija la portada. Idempotente. |
+| `setup-store.php` | Limpia contenido genérico, crea identidad, productos (con claves SAT), páginas y fija la portada. Crea además una segunda página de checkout con el **bloque** "Finalizar compra" (`/finalizar-compra-bloques/`), para probar el checkout clásico y el de bloques. Idempotente. |
 | `make-images.php` | Genera imágenes de producto con la marca (GD) y las asigna como imagen destacada. |
 | `mu-plugins/demo-brand.php` | Paleta pastel y estilos de la tienda demo (tienda + checkout). Va en `wp-content/mu-plugins/`. |
 | `mu-plugins/demo-i18n.php` | Ajusta textos de WooCommerce Blocks que el paquete `es_MX` no traduce. |

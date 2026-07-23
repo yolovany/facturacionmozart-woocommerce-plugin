@@ -149,6 +149,109 @@ update_option( 'show_on_front', 'page' );
 update_option( 'page_on_front', $home_id );
 
 /* ------------------------------------------------------------------ *
+ * 5.b) Segunda página de checkout con el BLOQUE "Finalizar compra".
+ *      WooCommerce crea la página de checkout por defecto con el shortcode
+ *      [woocommerce_checkout] (clásico). Para poder probar TAMBIÉN el checkout de
+ *      bloques (React + Store API), se crea una página aparte con el bloque completo.
+ *      Idempotente por slug 'finalizar-compra-bloques'.
+ * ------------------------------------------------------------------ */
+$checkout_bloques = <<<'HTML'
+<!-- wp:woocommerce/checkout -->
+<div class="wp-block-woocommerce-checkout alignwide wc-block-checkout is-loading"><!-- wp:woocommerce/checkout-fields-block -->
+<div class="wp-block-woocommerce-checkout-fields-block"><!-- wp:woocommerce/checkout-express-payment-block -->
+<div class="wp-block-woocommerce-checkout-express-payment-block"></div>
+<!-- /wp:woocommerce/checkout-express-payment-block -->
+
+<!-- wp:woocommerce/checkout-contact-information-block -->
+<div class="wp-block-woocommerce-checkout-contact-information-block"></div>
+<!-- /wp:woocommerce/checkout-contact-information-block -->
+
+<!-- wp:woocommerce/checkout-shipping-method-block -->
+<div class="wp-block-woocommerce-checkout-shipping-method-block"></div>
+<!-- /wp:woocommerce/checkout-shipping-method-block -->
+
+<!-- wp:woocommerce/checkout-pickup-options-block -->
+<div class="wp-block-woocommerce-checkout-pickup-options-block"></div>
+<!-- /wp:woocommerce/checkout-pickup-options-block -->
+
+<!-- wp:woocommerce/checkout-shipping-address-block -->
+<div class="wp-block-woocommerce-checkout-shipping-address-block"></div>
+<!-- /wp:woocommerce/checkout-shipping-address-block -->
+
+<!-- wp:woocommerce/checkout-billing-address-block -->
+<div class="wp-block-woocommerce-checkout-billing-address-block"></div>
+<!-- /wp:woocommerce/checkout-billing-address-block -->
+
+<!-- wp:woocommerce/checkout-shipping-methods-block -->
+<div class="wp-block-woocommerce-checkout-shipping-methods-block"></div>
+<!-- /wp:woocommerce/checkout-shipping-methods-block -->
+
+<!-- wp:woocommerce/checkout-payment-block -->
+<div class="wp-block-woocommerce-checkout-payment-block"></div>
+<!-- /wp:woocommerce/checkout-payment-block -->
+
+<!-- wp:woocommerce/checkout-additional-information-block -->
+<div class="wp-block-woocommerce-checkout-additional-information-block"></div>
+<!-- /wp:woocommerce/checkout-additional-information-block -->
+
+<!-- wp:woocommerce/checkout-order-note-block -->
+<div class="wp-block-woocommerce-checkout-order-note-block"></div>
+<!-- /wp:woocommerce/checkout-order-note-block -->
+
+<!-- wp:woocommerce/checkout-terms-block -->
+<div class="wp-block-woocommerce-checkout-terms-block"></div>
+<!-- /wp:woocommerce/checkout-terms-block -->
+
+<!-- wp:woocommerce/checkout-actions-block -->
+<div class="wp-block-woocommerce-checkout-actions-block"></div>
+<!-- /wp:woocommerce/checkout-actions-block --></div>
+<!-- /wp:woocommerce/checkout-fields-block -->
+
+<!-- wp:woocommerce/checkout-totals-block -->
+<div class="wp-block-woocommerce-checkout-totals-block"><!-- wp:woocommerce/checkout-order-summary-block -->
+<div class="wp-block-woocommerce-checkout-order-summary-block"><!-- wp:woocommerce/checkout-order-summary-cart-items-block -->
+<div class="wp-block-woocommerce-checkout-order-summary-cart-items-block"></div>
+<!-- /wp:woocommerce/checkout-order-summary-cart-items-block -->
+
+<!-- wp:woocommerce/checkout-order-summary-totals-block -->
+<div class="wp-block-woocommerce-checkout-order-summary-totals-block"><!-- wp:woocommerce/checkout-order-summary-subtotal-block -->
+<div class="wp-block-woocommerce-checkout-order-summary-subtotal-block"></div>
+<!-- /wp:woocommerce/checkout-order-summary-subtotal-block -->
+
+<!-- wp:woocommerce/checkout-order-summary-fee-block -->
+<div class="wp-block-woocommerce-checkout-order-summary-fee-block"></div>
+<!-- /wp:woocommerce/checkout-order-summary-fee-block -->
+
+<!-- wp:woocommerce/checkout-order-summary-discount-block -->
+<div class="wp-block-woocommerce-checkout-order-summary-discount-block"></div>
+<!-- /wp:woocommerce/checkout-order-summary-discount-block -->
+
+<!-- wp:woocommerce/checkout-order-summary-shipping-block -->
+<div class="wp-block-woocommerce-checkout-order-summary-shipping-block"></div>
+<!-- /wp:woocommerce/checkout-order-summary-shipping-block -->
+
+<!-- wp:woocommerce/checkout-order-summary-taxes-block -->
+<div class="wp-block-woocommerce-checkout-order-summary-taxes-block"></div>
+<!-- /wp:woocommerce/checkout-order-summary-taxes-block --></div>
+<!-- /wp:woocommerce/checkout-order-summary-totals-block --></div>
+<!-- /wp:woocommerce/checkout-order-summary-block --></div>
+<!-- /wp:woocommerce/checkout-totals-block --></div>
+<!-- /wp:woocommerce/checkout -->
+HTML;
+
+$existing_cob = get_page_by_path( 'finalizar-compra-bloques' );
+$cob_data = array(
+	'post_title'   => 'Finalizar compra (bloques)',
+	'post_content' => $checkout_bloques,
+	'post_status'  => 'publish',
+	'post_type'    => 'page',
+	'post_name'    => 'finalizar-compra-bloques',
+);
+if ( $existing_cob ) { $cob_data['ID'] = $existing_cob->ID; }
+$cob_id = wp_insert_post( $cob_data );
+echo "Checkout de bloques listo (id {$cob_id}): " . get_permalink( $cob_id ) . "\n";
+
+/* ------------------------------------------------------------------ *
  * 6) Menú de navegación según el flujo de compra.
  * ------------------------------------------------------------------ */
 $nav_items = array(
