@@ -161,9 +161,9 @@ class FCFDI_Order_Handler {
 		$body = $res['body'];
 
 		if ( 202 === $code || 200 === $code ) {
-			$factura_id = isset( $body['factura_id'] ) ? $body['factura_id'] : '';
+			$factura_id = isset( $body['factura_id'] ) ? sanitize_text_field( (string) $body['factura_id'] ) : '';
 			$order->update_meta_data( '_fcfdi_factura_id', $factura_id );
-			$order->update_meta_data( '_fcfdi_estatus', isset( $body['estatus'] ) ? $body['estatus'] : 'en_proceso' );
+			$order->update_meta_data( '_fcfdi_estatus', isset( $body['estatus'] ) ? sanitize_text_field( (string) $body['estatus'] ) : 'en_proceso' );
 			$order->update_meta_data( '_fcfdi_poll_intentos', 0 );
 			$order->save();
 			$order->add_order_note( __( 'CFDI encolado en el puente de facturación.', 'facturacionmozart-woocommerce-plugin' ) );
@@ -267,9 +267,12 @@ class FCFDI_Order_Handler {
 
 		if ( 'timbrada' === $estatus ) {
 			$order->update_meta_data( '_fcfdi_estatus', 'timbrada' );
-			$order->update_meta_data( '_fcfdi_uuid', isset( $body['uuid'] ) ? $body['uuid'] : '' );
-			$order->update_meta_data( '_fcfdi_xml_url', isset( $body['xml_url'] ) ? $body['xml_url'] : '' );
-			$order->update_meta_data( '_fcfdi_pdf_url', isset( $body['pdf_url'] ) ? $body['pdf_url'] : '' );
+			// El puente es de confianza, pero estos valores terminan en headers HTTP
+			// (Content-Disposition) y en el HTML de la cuenta: se sanean igual (defensa en
+			// profundidad contra inyección de header/HTML si el puente devolviera algo raro).
+			$order->update_meta_data( '_fcfdi_uuid', isset( $body['uuid'] ) ? sanitize_text_field( (string) $body['uuid'] ) : '' );
+			$order->update_meta_data( '_fcfdi_xml_url', isset( $body['xml_url'] ) ? esc_url_raw( (string) $body['xml_url'] ) : '' );
+			$order->update_meta_data( '_fcfdi_pdf_url', isset( $body['pdf_url'] ) ? esc_url_raw( (string) $body['pdf_url'] ) : '' );
 			$order->save();
 			$order->add_order_note(
 				sprintf(
