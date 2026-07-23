@@ -170,6 +170,38 @@ class FCFDI_Api_Client {
 	}
 
 	/**
+	 * Pide al puente que envíe un correo de notificación (p.ej. el enlace de acceso), usando
+	 * el SMTP configurado de la empresa. Así la entrega no depende del correo del WordPress.
+	 *
+	 * @param string $destinatario Correo destino.
+	 * @param string $asunto       Asunto.
+	 * @param string $mensaje_html Cuerpo HTML.
+	 * @return array|WP_Error  array( 'code' => int, 'body' => array )
+	 */
+	public function enviar_notificacion( $destinatario, $asunto, $mensaje_html ) {
+		$root = preg_replace( '#/facturas/?$#', '', $this->base_url );
+		$res  = wp_remote_post(
+			$root . '/notificaciones',
+			array(
+				'timeout' => 20,
+				'headers' => array(
+					'Authorization' => 'Bearer ' . $this->token,
+					'Content-Type'  => 'application/json',
+					'Accept'        => 'application/json',
+				),
+				'body'    => wp_json_encode(
+					array(
+						'destinatario' => $destinatario,
+						'asunto'       => $asunto,
+						'mensaje_html' => $mensaje_html,
+					)
+				),
+			)
+		);
+		return $this->normalizar( $res );
+	}
+
+	/**
 	 * Descarga el XML o PDF desde el puente (autenticado con el token).
 	 *
 	 * @param string $factura_id Id.

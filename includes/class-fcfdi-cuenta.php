@@ -271,14 +271,33 @@ class FCFDI_Cuenta {
 
 		$minutos = (int) round( self::TTL / 60 );
 		$asunto  = __( 'Tu enlace de acceso', 'facturacionmozart-woocommerce-plugin' );
-		/* translators: 1: enlace, 2: minutos de vigencia. */
-		$cuerpo = sprintf(
-			__( "Hola,\n\nUsa este enlace para entrar a tu cuenta y ver tus facturas (válido %2\$d minutos, un solo uso):\n\n%1\$s\n\nSi no lo solicitaste, ignora este correo.", 'facturacionmozart-woocommerce-plugin' ),
-			$url,
-			$minutos
-		);
 
-		$enviado = wp_mail( $user->user_email, $asunto, $cuerpo );
+		/* translators: %d: minutos de vigencia del enlace. */
+		$intro = sprintf( __( 'Usa este enlace para entrar a tu cuenta y ver tus facturas (válido %d minutos, un solo uso):', 'facturacionmozart-woocommerce-plugin' ), $minutos );
+		$aviso = __( 'Si no lo solicitaste, ignora este correo.', 'facturacionmozart-woocommerce-plugin' );
+		$mensaje_html = '<p>' . esc_html( $intro ) . '</p>'
+			. '<p><a href="' . esc_url( $url ) . '">' . esc_html( $url ) . '</a></p>'
+			. '<p>' . esc_html( $aviso ) . '</p>';
+
+		// Entrega preferente POR EL PUENTE: usa el SMTP del emisor (el mismo con el que se
+		// entrega el CFDI), de modo que el acceso del cliente no dependa del servidor de
+		// correo del WordPress de la tienda. Si el puente no está configurado o falla, cae
+		// a wp_mail (p.ej. el demo sin backend, o SMTP propio de la tienda).
+		$enviado = false;
+		if ( class_exists( 'FCFDI_Settings' ) && FCFDI_Settings::esta_configurado() && class_exists( 'FCFDI_Api_Client' ) ) {
+			$client  = new FCFDI_Api_Client();
+			$res     = $client->enviar_notificacion( $user->user_email, $asunto, $mensaje_html );
+			$enviado = ! is_wp_error( $res ) && 200 === (int) $res['code'];
+		}
+
+		if ( ! $enviado ) {
+			$enviado = wp_mail(
+				$user->user_email,
+				$asunto,
+				$mensaje_html,
+				array( 'Content-Type: text/html; charset=UTF-8' )
+			);
+		}
 
 		// El acceso del cliente depende de este correo. Si el envío falla (SMTP mal
 		// configurado, etc.), déjalo en el log para que el operador lo detecte: de lo
