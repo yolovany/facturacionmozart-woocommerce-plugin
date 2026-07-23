@@ -84,6 +84,15 @@ class FCFDI_Webhook {
 			$order->add_order_note(
 				sprintf( __( 'CFDI timbrado (webhook). UUID: %s', 'facturacionmozart-woocommerce-plugin' ), $request->get_param( 'uuid' ) )
 			);
+			// Mismo cierre de ciclo que el polling: el poll programado ya sobra, el pedido
+			// retenido se libera y, si el pedido se canceló con el timbrado en vuelo, el
+			// CFDI recién timbrado se cancela ante el SAT.
+			if ( class_exists( 'FCFDI_Order_Handler' ) ) {
+				FCFDI_Order_Handler::detener_programadas( $order->get_id() );
+				if ( ! FCFDI_Order_Handler::cancelar_pendiente_si_aplica( $order ) ) {
+					FCFDI_Order_Handler::liberar_si_retenido( $order );
+				}
+			}
 		} elseif ( 'error' === $estatus ) {
 			$codigo  = sanitize_text_field( (string) $request->get_param( 'codigo' ) );
 			$mensaje = sanitize_text_field( (string) $request->get_param( 'mensaje' ) );
@@ -91,6 +100,12 @@ class FCFDI_Webhook {
 			$order->update_meta_data( '_fcfdi_error', $codigo . ': ' . $mensaje );
 			$order->save();
 			$order->add_order_note( '⚠️ ' . sprintf( __( 'Error de facturación (webhook) %1$s: %2$s', 'facturacionmozart-woocommerce-plugin' ), $codigo, $mensaje ) );
+			// Igual que el polling en fallo definitivo: detener el poll pendiente y avisar
+			// al administrador si el pedido está retenido esperando su CFDI.
+			if ( class_exists( 'FCFDI_Order_Handler' ) ) {
+				FCFDI_Order_Handler::detener_programadas( $order->get_id() );
+				FCFDI_Order_Handler::escalar_si_retenido( $order, $codigo . ': ' . $mensaje );
+			}
 		}
 
 		return new WP_REST_Response( array( 'ok' => true ), 200 );

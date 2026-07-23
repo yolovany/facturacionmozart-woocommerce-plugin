@@ -6,7 +6,7 @@ Tested up to: 6.6
 Requires PHP: 7.4
 WC requires at least: 6.0
 WC tested up to: 9.0
-Stable tag: 1.12.0
+Stable tag: 1.12.1
 License: GPLv2 or later
 
 Genera facturas CFDI automáticamente para cada pedido de WooCommerce a través del puente REST del sistema de facturación.
@@ -45,6 +45,17 @@ El plugin conecta tu tienda WooCommerce con el sistema de facturación CFDI medi
 * `fcfdi_suprimir_email_cuenta_nueva` — suprime el correo nativo "Cuenta nueva" de WooCommerce en la creación silenciosa (por defecto true).
 
 == Changelog ==
+
+= 1.12.1 =
+* Webhook: al notificarse el timbrado se libera de inmediato el pedido retenido y se
+  desprograma el polling pendiente (antes el pedido podía quedar "en espera" hasta 1 h);
+  ante un error definitivo del puente, el webhook también escala al administrador si el
+  pedido está retenido.
+* Cancelación con CFDI en vuelo: si el pedido se cancela o reembolsa por completo antes
+  de timbrar, se aborta el envío al puente (no se emite CFDI); si el puente ya lo tenía
+  en proceso, el CFDI se cancela ante el SAT automáticamente en cuanto se timbra.
+* El envío encolado ya no procede si la facturación fue abortada (guarda de estatus).
+* La prueba de conexión responde con éxito correcto (wp_send_json_success).
 
 = 1.12.0 =
 * Cuenta silenciosa: al comprar como invitado se crea automáticamente la cuenta del

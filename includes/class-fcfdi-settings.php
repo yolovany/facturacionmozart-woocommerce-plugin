@@ -186,7 +186,7 @@ class FCFDI_Settings {
 		if ( 200 === $code && isset( $res['body']['status'] ) && 'ok' === $res['body']['status'] ) {
 			$comercio = isset( $res['body']['comercio'] ) ? $res['body']['comercio'] : '';
 			$pruebas  = ! empty( $res['body']['timbrado_pruebas'] ) ? __( ' (modo PRUEBAS)', 'facturacionmozart-woocommerce-plugin' ) : '';
-			wp_send_json_error( '✅ ' . sprintf( __( 'Conexión correcta. Comercio: %1$s%2$s', 'facturacionmozart-woocommerce-plugin' ), $comercio, $pruebas ) );
+			wp_send_json_success( '✅ ' . sprintf( __( 'Conexión correcta. Comercio: %1$s%2$s', 'facturacionmozart-woocommerce-plugin' ), $comercio, $pruebas ) );
 		}
 		if ( 401 === $code || 403 === $code ) {
 			wp_send_json_error( '❌ ' . __( 'Token inválido o IP no autorizada.', 'facturacionmozart-woocommerce-plugin' ) );

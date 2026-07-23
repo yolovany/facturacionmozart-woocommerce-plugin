@@ -96,9 +96,11 @@ class FCFDI_Order_Handler {
 	 * Si el pedido se retuvo esperando el CFDI, lo regresa a su estatus previo
 	 * (processing si se pagó sin completar, completed si ya venía completado).
 	 *
+	 * Pública: también la invoca el webhook al recibir el resultado del timbrado.
+	 *
 	 * @param WC_Order $order Pedido.
 	 */
-	private static function liberar_si_retenido( $order ) {
+	public static function liberar_si_retenido( $order ) {
 		if ( 'si' !== $order->get_meta( '_fcfdi_retener_completado' ) ) {
 			return;
 		}
@@ -113,6 +115,21 @@ class FCFDI_Order_Handler {
 	}
 
 	/**
+	 * Desprograma cualquier envío/poll pendiente del pedido en Action Scheduler.
+	 * Se usa al abortar la facturación (pedido cancelado) o cuando el webhook ya
+	 * entregó el resultado y el polling sobra.
+	 *
+	 * @param int $order_id Id del pedido.
+	 */
+	public static function detener_programadas( $order_id ) {
+		if ( ! function_exists( 'as_unschedule_all_actions' ) ) {
+			return;
+		}
+		as_unschedule_all_actions( self::HOOK_ENVIAR, array( 'order_id' => $order_id ), 'facturacionmozart-woocommerce-plugin' );
+		as_unschedule_all_actions( self::HOOK_CONSULTAR, array( 'order_id' => $order_id ), 'facturacionmozart-woocommerce-plugin' );
+	}
+
+	/**
 	 * Construye el payload y lo envía al puente. Programa el polling de estatus.
 	 *
 	 * @param int $order_id Id del pedido.
@@ -120,6 +137,12 @@ class FCFDI_Order_Handler {
 	public static function enviar( $order_id ) {
 		$order = wc_get_order( $order_id );
 		if ( ! $order || $order->get_meta( '_fcfdi_factura_id' ) ) {
+			return;
+		}
+		// Solo se envía si el pedido sigue en la ruta de envío. Si la facturación se
+		// abortó (p.ej. el pedido se canceló antes de timbrar), el estatus ya no es
+		// 'encolada'/'reintentando' y esta acción encolada debe morir en silencio.
+		if ( ! in_array( (string) $order->get_meta( '_fcfdi_estatus' ), array( 'encolada', 'reintentando' ), true ) ) {
 			return;
 		}
 
@@ -255,6 +278,11 @@ class FCFDI_Order_Handler {
 					isset( $body['uuid'] ) ? $body['uuid'] : ''
 				)
 			);
+			// El pedido se canceló/reembolsó mientras el puente timbraba: el CFDI recién
+			// timbrado ya no corresponde a una venta y se cancela ante el SAT de inmediato.
+			if ( self::cancelar_pendiente_si_aplica( $order ) ) {
+				return;
+			}
 			self::liberar_si_retenido( $order );
 			return;
 		}
@@ -266,6 +294,27 @@ class FCFDI_Order_Handler {
 
 		// Sigue en proceso: reprogramar el polling.
 		self::reprogramar_o_fallar( $order, __( 'El timbrado sigue en proceso tras varios intentos.', 'facturacionmozart-woocommerce-plugin' ) );
+	}
+
+	/**
+	 * Si el pedido quedó marcado para cancelar su CFDI al timbrarse (se canceló o
+	 * reembolsó con el timbrado en vuelo), lo cancela ante el SAT ahora que ya existe.
+	 * Pública: también la invoca el webhook al notificarse el timbrado.
+	 *
+	 * @param WC_Order $order Pedido (con _fcfdi_estatus ya en 'timbrada').
+	 * @return bool true si aplicaba y se procesó la cancelación.
+	 */
+	public static function cancelar_pendiente_si_aplica( $order ) {
+		if ( 'si' !== $order->get_meta( '_fcfdi_cancelar_al_timbrar' ) ) {
+			return false;
+		}
+		$order->delete_meta_data( '_fcfdi_cancelar_al_timbrar' );
+		$order->save();
+		if ( class_exists( 'FCFDI_Cancel' ) && FCFDI_Cancel::cancelar_cfdi( $order ) ) {
+			return true;
+		}
+		$order->add_order_note( '⚠️ ' . __( 'El CFDI se timbró tras cancelarse el pedido y NO se pudo cancelar automáticamente ante el SAT. Cancélalo manualmente (acción "Cancelar CFDI ante el SAT").', 'facturacionmozart-woocommerce-plugin' ) );
+		return true;
 	}
 
 	/**
@@ -319,10 +368,12 @@ class FCFDI_Order_Handler {
 	 * solo (dato de negocio incorrecto o intentos agotados), permanece en "en espera"
 	 * (nunca se libera solo) y se avisa al administrador para que lo resuelva a mano.
 	 *
+	 * Pública: también la invoca el webhook cuando el puente notifica un error.
+	 *
 	 * @param WC_Order $order  Pedido.
 	 * @param string   $motivo Motivo del fallo.
 	 */
-	private static function escalar_si_retenido( $order, $motivo ) {
+	public static function escalar_si_retenido( $order, $motivo ) {
 		if ( 'si' !== $order->get_meta( '_fcfdi_retener_completado' ) ) {
 			return;
 		}
