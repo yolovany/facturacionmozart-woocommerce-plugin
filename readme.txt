@@ -56,6 +56,9 @@ El plugin conecta tu tienda WooCommerce con el sistema de facturación CFDI medi
   en proceso, el CFDI se cancela ante el SAT automáticamente en cuanto se timbra.
 * El envío encolado ya no procede si la facturación fue abortada (guarda de estatus).
 * La prueba de conexión responde con éxito correcto (wp_send_json_success).
+* Los archivos temporales del CFDI que se crean para adjuntarlo a un correo (cuando se
+  activa fcfdi_adjuntar_cfdi_email) ahora se borran al terminar la petición, en vez de
+  quedar acumulados en el directorio temporal del servidor.
 
 = 1.12.0 =
 * Cuenta silenciosa: al comprar como invitado se crea automáticamente la cuenta del

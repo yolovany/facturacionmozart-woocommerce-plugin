@@ -14,6 +14,15 @@ class FCFDI_My_Account {
 
 	const ACTION = 'fcfdi_descargar';
 
+	/**
+	 * Rutas de archivos temporales del CFDI creados para adjuntar a un correo.
+	 * Se borran en 'shutdown' (tras enviarse el correo en la misma petición) para
+	 * no dejar CFDI (datos fiscales) acumulados en el directorio temporal del servidor.
+	 *
+	 * @var string[]
+	 */
+	private static $temporales = array();
+
 	public static function init() {
 		add_action( 'woocommerce_order_details_after_order_table', array( __CLASS__, 'mostrar' ) );
 		add_action( 'admin_post_' . self::ACTION, array( __CLASS__, 'descargar' ) );
@@ -72,9 +81,35 @@ class FCFDI_My_Account {
 			$ruta = trailingslashit( get_temp_dir() ) . 'cfdi-' . sanitize_file_name( $nombre ) . '.' . $formato;
 			if ( false !== file_put_contents( $ruta, $res['body'] ) ) { // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents
 				$attachments[] = $ruta;
+				self::registrar_temporal( $ruta );
 			}
 		}
 		return $attachments;
+	}
+
+	/**
+	 * Anota un temporal para su limpieza y engancha (una sola vez) el borrado en shutdown.
+	 * El correo se envía dentro de la misma petición, así que en shutdown ya se consumió.
+	 *
+	 * @param string $ruta Ruta del archivo temporal.
+	 */
+	private static function registrar_temporal( $ruta ) {
+		if ( empty( self::$temporales ) ) {
+			add_action( 'shutdown', array( __CLASS__, 'limpiar_temporales' ) );
+		}
+		self::$temporales[] = $ruta;
+	}
+
+	/**
+	 * Borra los temporales del CFDI creados para adjuntar a correos en esta petición.
+	 */
+	public static function limpiar_temporales() {
+		foreach ( self::$temporales as $ruta ) {
+			if ( is_string( $ruta ) && file_exists( $ruta ) ) {
+				wp_delete_file( $ruta );
+			}
+		}
+		self::$temporales = array();
 	}
 
 	/**
