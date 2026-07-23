@@ -56,7 +56,10 @@ El plugin conecta tu tienda WooCommerce con el sistema de facturación CFDI medi
   creación automática de cuenta.
 * Seguridad: si el correo ya pertenece a una cuenta, no se vincula ni se inicia sesión
   automáticamente (evita apropiarse de una cuenta ajena); la respuesta a la solicitud de
-  enlace es uniforme (no revela qué correos existen).
+  enlace es uniforme (no revela qué correos existen). Límite de 1 envío de enlace por
+  minuto por cuenta (anti email-bombing).
+* En "pedido recibido" se avisa al comprador que se creó su cuenta y cómo entrar (sin
+  contraseña), solo cuando la cuenta se creó en silencio para ese pedido.
 
 = 1.6.0 =
 * Entrega del CFDI: adjunta el XML y PDF al correo de pedido completado / factura de

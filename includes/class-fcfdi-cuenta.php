@@ -31,11 +31,14 @@ class FCFDI_Cuenta {
 	const REQ_ACTION = 'fcfdi_solicitar_acceso';
 	/** Query var en la página de Mi Cuenta que porta el token del enlace. */
 	const LOGIN_QV = 'fcfdi_acceso';
-	/** Meta de usuario: hash del token y su caducidad (epoch). */
+	/** Meta de usuario: hash del token, su caducidad (epoch) y el último envío (epoch). */
 	const META_HASH = '_fcfdi_acceso_hash';
 	const META_EXP  = '_fcfdi_acceso_exp';
+	const META_LAST = '_fcfdi_acceso_last';
 	/** Vigencia del enlace, en segundos. */
 	const TTL = 1800; // 30 min.
+	/** Mínimo entre envíos de enlace por cuenta (anti email-bombing), en segundos. */
+	const THROTTLE = 60;
 
 	public static function init() {
 		// 1) Cuenta silenciosa al procesar el pedido (checkout clásico y de bloques).
@@ -50,6 +53,9 @@ class FCFDI_Cuenta {
 		add_action( 'admin_post_' . self::REQ_ACTION, array( __CLASS__, 'procesar_solicitud_acceso' ) );
 		// Formulario "envíame un enlace de acceso" sobre el login de Mi Cuenta.
 		add_action( 'woocommerce_login_form_start', array( __CLASS__, 'form_acceso' ) );
+
+		// 3) Aviso en "pedido recibido" cuando se creó la cuenta en silencio.
+		add_action( 'woocommerce_thankyou', array( __CLASS__, 'aviso_cuenta_creada' ) );
 	}
 
 	/**
@@ -102,6 +108,8 @@ class FCFDI_Cuenta {
 		}
 
 		$order->set_customer_id( $user_id );
+		// Marca para avisar en "pedido recibido" que se creó la cuenta (solo cuentas nuevas).
+		$order->update_meta_data( '_fcfdi_cuenta_creada', 'si' );
 		$order->save();
 
 		self::guardar_datos_checkout( $user_id, $order );
@@ -199,6 +207,14 @@ class FCFDI_Cuenta {
 	 * @param WP_User $user Usuario destino.
 	 */
 	private static function enviar_enlace( $user ) {
+		// Throttle: si ya se envió un enlace hace poco, no reenvía (evita bombardear el
+		// correo del cliente). El token anterior sigue vigente hasta su caducidad.
+		$last = (int) get_user_meta( $user->ID, self::META_LAST, true );
+		if ( $last && ( time() - $last ) < self::THROTTLE ) {
+			return;
+		}
+		update_user_meta( $user->ID, self::META_LAST, time() );
+
 		$token = wp_generate_password( 40, false );
 		update_user_meta( $user->ID, self::META_HASH, hash( 'sha256', $token ) );
 		update_user_meta( $user->ID, self::META_EXP, time() + self::TTL );
@@ -221,6 +237,28 @@ class FCFDI_Cuenta {
 		);
 
 		wp_mail( $user->user_email, $asunto, $cuerpo );
+	}
+
+	/**
+	 * Aviso en la página de "pedido recibido": informa al comprador que se le creó una
+	 * cuenta y cómo entrar (sin contraseña). Solo cuando la cuenta se creó en silencio para
+	 * este pedido, no para clientes que ya tenían cuenta.
+	 *
+	 * @param int $order_id Id del pedido.
+	 */
+	public static function aviso_cuenta_creada( $order_id ) {
+		$order = wc_get_order( $order_id );
+		if ( ! $order || 'si' !== $order->get_meta( '_fcfdi_cuenta_creada' ) ) {
+			return;
+		}
+		$mi_cuenta = wc_get_page_permalink( 'myaccount' );
+		echo '<div class="woocommerce-info fcfdi-aviso-cuenta">';
+		printf(
+			/* translators: %s: enlace a la página de Mi Cuenta. */
+			wp_kses_post( __( 'Creamos una cuenta con tu correo para que consultes tus facturas cuando quieras. Para entrar, ve a %s y pide tu enlace de acceso con el mismo correo (sin contraseñas).', 'facturacionmozart-woocommerce-plugin' ) ),
+			'<a href="' . esc_url( $mi_cuenta ) . '">' . esc_html__( 'Mi Cuenta', 'facturacionmozart-woocommerce-plugin' ) . '</a>'
+		);
+		echo '</div>';
 	}
 
 	/**
