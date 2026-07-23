@@ -33,8 +33,9 @@ para cada pedido, hablando por REST con un backend/puente de facturación propio
 
 Este repositorio contiene **solo el plugin de WordPress**. No incluye el backend que
 genera y timbra el CFDI — el plugin es un cliente REST que habla con tu propio servicio
-de facturación (el "puente"), autenticado con Bearer token. El contrato del API
-(endpoints, payloads, códigos de error) está documentado en [`readme.txt`](readme.txt).
+de facturación (el "puente"), autenticado con Bearer token. El contrato completo del API
+(endpoints, payloads, webhook, códigos de error) está en
+**[`docs/API.md`](docs/API.md)**: sirve para implementar o auditar un backend compatible.
 
 ```
 WooCommerce (checkout / pedido) → plugin → REST (Bearer token) → tu backend de facturación → PAC/SAT
@@ -63,7 +64,8 @@ Si no tienes un backend propio, puedes explorar el alcance del plugin con la
 El plugin expone varios filtros (`fcfdi_payload`, `fcfdi_forma_pago`,
 `fcfdi_clave_prod_serv_envio`, `fcfdi_motivo_cancelacion`, etc.) para ajustar el
 comportamiento sin tocar el código. Ver el listado completo y el changelog en
-[`readme.txt`](readme.txt).
+[`readme.txt`](readme.txt). El contrato del API que consume el plugin está en
+[`docs/API.md`](docs/API.md).
 
 ## Demo y desarrollo local
 
