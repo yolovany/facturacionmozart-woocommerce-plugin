@@ -61,6 +61,8 @@ class FCFDI_Cuenta {
 		add_action( 'admin_post_' . self::REQ_ACTION, array( __CLASS__, 'procesar_solicitud_acceso' ) );
 		// Formulario "envíame un enlace de acceso" sobre el login de Mi Cuenta.
 		add_action( 'woocommerce_login_form_start', array( __CLASS__, 'form_acceso' ) );
+		// Aviso "te enviamos un enlace" tras solicitarlo (se pinta en Mi Cuenta, no en admin-post).
+		add_action( 'woocommerce_before_customer_login_form', array( __CLASS__, 'aviso_enlace_solicitado' ) );
 
 		// 3) Aviso en "pedido recibido" cuando se creó la cuenta en silencio.
 		add_action( 'woocommerce_thankyou', array( __CLASS__, 'aviso_cuenta_creada' ) );
@@ -221,12 +223,24 @@ class FCFDI_Cuenta {
 			}
 		}
 
-		wc_add_notice(
-			__( 'Si ese correo tiene compras con nosotros, te enviamos un enlace de acceso. Revisa tu bandeja (y la carpeta de spam).', 'facturacionmozart-woocommerce-plugin' ),
-			'success'
-		);
-		wp_safe_redirect( $destino );
+		// OJO: este handler corre en admin-post.php (contexto admin), donde wc_add_notice()
+		// NO está cargada. El aviso se pinta en Mi Cuenta vía un parámetro en la URL.
+		wp_safe_redirect( add_query_arg( 'fcfdi_acceso_msg', 'enviado', $destino ) );
 		exit;
+	}
+
+	/**
+	 * Pinta el aviso "te enviamos un enlace" en la página de Mi Cuenta (frontend), tras
+	 * volver del handler admin-post. Mensaje uniforme: no revela si el correo existe.
+	 */
+	public static function aviso_enlace_solicitado() {
+		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- solo muestra un aviso informativo.
+		if ( empty( $_GET['fcfdi_acceso_msg'] ) ) {
+			return;
+		}
+		echo '<div class="woocommerce-message" role="alert">'
+			. esc_html__( 'Si ese correo tiene compras con nosotros, te enviamos un enlace de acceso. Revisa tu bandeja (y la carpeta de spam).', 'facturacionmozart-woocommerce-plugin' )
+			. '</div>';
 	}
 
 	/**
@@ -264,7 +278,22 @@ class FCFDI_Cuenta {
 			$minutos
 		);
 
-		wp_mail( $user->user_email, $asunto, $cuerpo );
+		$enviado = wp_mail( $user->user_email, $asunto, $cuerpo );
+
+		// El acceso del cliente depende de este correo. Si el envío falla (SMTP mal
+		// configurado, etc.), déjalo en el log para que el operador lo detecte: de lo
+		// contrario el cliente esperaría un correo que nunca llega. Al usuario se le
+		// responde igual (mensaje uniforme) para no revelar qué correos existen.
+		if ( ! $enviado ) {
+			error_log( '[FCFDI] No se pudo enviar el enlace de acceso a un cliente (revisa la configuración de correo/SMTP).' ); // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log
+			/**
+			 * Se dispara cuando falla el envío del enlace de acceso. Útil para alertar al
+			 * admin (correo alterno, log externo, etc.).
+			 *
+			 * @param int $user_id Id del usuario destinatario.
+			 */
+			do_action( 'fcfdi_enlace_acceso_no_enviado', $user->ID );
+		}
 	}
 
 	/**

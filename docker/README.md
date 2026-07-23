@@ -113,6 +113,21 @@ Espera ~1-2 min (la primera vez descarga WooCommerce y el idioma) y abre
 <http://localhost:8000> — admin: `admin` / `admin`. No hay paso manual de `wpcli`: el
 servicio de setup corre solo con el `up` y termina.
 
+### Correo de prueba (Mailpit) — para probar el "enlace de acceso"
+
+El plugin crea una cuenta al comprar y el cliente vuelve a entrar con un **enlace de
+acceso** que llega por **correo** (sin contraseña). Para poder verlo, el demo incluye
+**Mailpit** (un buzón de prueba): captura todo el correo saliente y lo muestra en una UI.
+
+- Abre <http://localhost:8025> para ver los correos (el enlace de acceso, avisos, etc.).
+- Flujo: en **Mi Cuenta**, escribe el correo en "Acceder con mi correo" → abre Mailpit →
+  clic en el enlace → entras a "Mis Facturas".
+
+> **Producción:** este buzón es solo para el demo. En un sitio real el envío de correo
+> (**SMTP**) debe estar configurado y funcionando: el acceso del cliente depende de que el
+> enlace llegue. Si el envío falla, el plugin lo deja en el log (`error_log`) y dispara la
+> acción `fcfdi_enlace_acceso_no_enviado`.
+
 Reinstalar desde cero (sobrescribe la instancia, borra WP + BD):
 
 ```powershell

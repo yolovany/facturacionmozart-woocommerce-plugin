@@ -64,6 +64,10 @@ El plugin conecta tu tienda WooCommerce con el sistema de facturación CFDI medi
 * Se suprime el correo nativo "Cuenta nueva" de WooCommerce durante la creación
   silenciosa (contradice el modelo sin contraseña y duplica el aviso propio); filtro
   fcfdi_suprimir_email_cuenta_nueva para reactivarlo.
+* Robustez de correo: como el acceso del cliente depende del enlace por correo, si el
+  envío falla se registra en el log (el operador puede detectar un SMTP roto) y se
+  dispara la acción fcfdi_enlace_acceso_no_enviado. IMPORTANTE: en producción el envío
+  de correo (SMTP) debe estar configurado y funcionando.
 
 = 1.6.0 =
 * Entrega del CFDI: adjunta el XML y PDF al correo de pedido completado / factura de
