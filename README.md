@@ -244,8 +244,14 @@ comercio, no por el de WordPress. **Request:** `{ destinatario, asunto, mensaje_
 ## Webhook (callback)
 
 Si el `FacturaRequest` trae `callback_url`, el backend debe hacer `POST` a esa URL al
-resolverse el timbrado, autenticándose con el header **`X-FCFDI-Token: {token del comercio}`**.
-El plugin verifica ese token antes de aceptar la notificación.
+resolverse el timbrado, autenticándose con el header **`X-FCFDI-Token`**. El plugin
+verifica ese valor antes de aceptar la notificación.
+
+El valor esperado es el **secreto del webhook** configurado en los ajustes del plugin
+("Secreto del webhook"). Es un secreto **distinto del token de API**, para que el backend
+pueda almacenar el token de entrada solo hasheado. Si ese ajuste se deja vacío, el plugin
+espera el token de API — un backend que no implemente secretos separados sigue siendo
+compatible.
 
 **Cuerpo esperado:** `{ factura_id, order_id, estatus, uuid, codigo, mensaje }`.
 
