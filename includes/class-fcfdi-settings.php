@@ -61,6 +61,18 @@ class FCFDI_Settings {
 		return trim( self::get( 'api_token' ) );
 	}
 
+	/**
+	 * Secreto con el que el puente firma sus notificaciones (webhook). Es un secreto
+	 * distinto del token de API: así el puente puede guardar el token solo hasheado.
+	 * Si no se captura, se usa el token de API (compatibilidad con puentes anteriores).
+	 *
+	 * @return string
+	 */
+	public static function get_webhook_secret() {
+		$secreto = trim( self::get( 'webhook_secret' ) );
+		return '' !== $secreto ? $secreto : self::get_api_token();
+	}
+
 	public static function esta_configurado() {
 		return self::get_api_url() && self::get_api_token();
 	}
@@ -94,6 +106,7 @@ class FCFDI_Settings {
 		return array(
 			'api_url'          => esc_url_raw( isset( $input['api_url'] ) ? $input['api_url'] : '' ),
 			'api_token'        => sanitize_text_field( isset( $input['api_token'] ) ? $input['api_token'] : '' ),
+			'webhook_secret'   => sanitize_text_field( isset( $input['webhook_secret'] ) ? $input['webhook_secret'] : '' ),
 			'facturar_siempre' => empty( $input['facturar_siempre'] ) ? 'no' : 'si',
 		);
 	}
@@ -121,6 +134,15 @@ class FCFDI_Settings {
 								class="regular-text" autocomplete="off"
 								value="<?php echo esc_attr( self::get( 'api_token' ) ); ?>" />
 							<p class="description"><?php esc_html_e( 'Token Bearer entregado por el proveedor de facturación.', 'facturacionmozart-woocommerce-plugin' ); ?></p>
+						</td>
+					</tr>
+					<tr>
+						<th scope="row"><label for="fcfdi_webhook_secret"><?php esc_html_e( 'Secreto del webhook', 'facturacionmozart-woocommerce-plugin' ); ?></label></th>
+						<td>
+							<input name="<?php echo esc_attr( self::OPTION ); ?>[webhook_secret]" id="fcfdi_webhook_secret" type="password"
+								class="regular-text" autocomplete="off"
+								value="<?php echo esc_attr( self::get( 'webhook_secret' ) ); ?>" />
+							<p class="description"><?php esc_html_e( 'Secreto con el que el puente firma sus avisos de timbrado. Se captura en la ficha de la empresa del sistema de facturación. Si se deja vacío, se usa el token de API.', 'facturacionmozart-woocommerce-plugin' ); ?></p>
 						</td>
 					</tr>
 					<tr>
