@@ -30,6 +30,14 @@ class FCFDI_Order_Handler {
 	 */
 	const BACKOFF_POLL = array( 20, 20, 30, 60, 120, 300, 600, 900, 1800, 3600 );
 
+	/**
+	 * Códigos HTTP que son fallo de INFRAESTRUCTURA/configuración, no de negocio: se
+	 * reintentan con backoff en vez de marcar el pedido como error definitivo.
+	 * 401/403: token rotado o inválido, IP fuera de la whitelist. 408/429: timeout del
+	 * proxy y rate-limit. Todos se resuelven solos al corregir la configuración.
+	 */
+	const CODIGOS_INFRA = array( 401, 403, 408, 429 );
+
 	public static function init() {
 		// Se factura al confirmarse el pago, no al completar (enviar) el pedido: el
 		// reencuadre PAGADO→FACTURADO→LIBERADO exige factura tras el pago. Los productos
@@ -151,7 +159,11 @@ class FCFDI_Order_Handler {
 		$res     = $client->crear_factura( $payload, (string) $order->get_id() );
 
 		// Error de red o 5xx del puente: reintentar con backoff (reprogramando el envío).
-		if ( is_wp_error( $res ) || (int) $res['code'] >= 500 ) {
+		// También son de INFRA (no de negocio) los fallos de credencial/acceso y el 429:
+		// un token rotado, una IP fuera de la whitelist o un rate-limit son condiciones
+		// transitorias de configuración. Marcarlos como error definitivo quemaría pedidos
+		// legítimos; con reintento se recuperan solos al corregir la configuración.
+		if ( is_wp_error( $res ) || in_array( (int) $res['code'], self::CODIGOS_INFRA, true ) || (int) $res['code'] >= 500 ) {
 			$motivo = is_wp_error( $res ) ? $res->get_error_message() : ( 'HTTP ' . $res['code'] );
 			self::reintentar_envio( $order, $motivo );
 			return;
