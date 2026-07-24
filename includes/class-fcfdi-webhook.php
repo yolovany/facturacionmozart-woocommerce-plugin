@@ -50,8 +50,9 @@ class FCFDI_Webhook {
 	 */
 	public static function autorizar( $request ) {
 		$token = $request->get_header( 'x-fcfdi-token' );
-		// Secreto propio del webhook; si no se capturó, cae al token de API (el puente
-		// también hace ese fallback, así que ambos lados coinciden).
+		// Sólo el secreto propio del webhook. Sin él se rechaza: no se acepta el token de
+		// API como sustituto, porque reutilizar una credencial para las dos direcciones
+		// hace que comprometer una comprometa ambas.
 		$config = FCFDI_Settings::get_webhook_secret();
 		return ! empty( $config ) && hash_equals( (string) $config, (string) $token );
 	}

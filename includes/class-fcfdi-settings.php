@@ -63,14 +63,18 @@ class FCFDI_Settings {
 
 	/**
 	 * Secreto con el que el puente firma sus notificaciones (webhook). Es un secreto
-	 * distinto del token de API: así el puente puede guardar el token solo hasheado.
-	 * Si no se captura, se usa el token de API (compatibilidad con puentes anteriores).
+	 * distinto del token de API y no tiene sustituto.
 	 *
-	 * @return string
+	 * Antes se caía al token de API cuando este campo quedaba vacío. Eso hacía que la
+	 * credencial con la que la tienda se autentica ante el puente fuera también la clave
+	 * con la que el puente firma lo que le envía: un solo valor comprometido rompía las
+	 * dos direcciones. Sin secreto capturado, el webhook queda cerrado y el pedido se
+	 * actualiza por sondeo, que es la vía primaria.
+	 *
+	 * @return string Cadena vacía si no se ha configurado.
 	 */
 	public static function get_webhook_secret() {
-		$secreto = trim( self::get( 'webhook_secret' ) );
-		return '' !== $secreto ? $secreto : self::get_api_token();
+		return trim( self::get( 'webhook_secret' ) );
 	}
 
 	public static function esta_configurado() {
@@ -142,7 +146,7 @@ class FCFDI_Settings {
 							<input name="<?php echo esc_attr( self::OPTION ); ?>[webhook_secret]" id="fcfdi_webhook_secret" type="password"
 								class="regular-text" autocomplete="off"
 								value="<?php echo esc_attr( self::get( 'webhook_secret' ) ); ?>" />
-							<p class="description"><?php esc_html_e( 'Secreto con el que el puente firma sus avisos de timbrado. Se captura en la ficha de la empresa del sistema de facturación. Si se deja vacío, se usa el token de API.', 'facturacionmozart-woocommerce-plugin' ); ?></p>
+							<p class="description"><?php esc_html_e( 'Secreto con el que el puente firma sus avisos de timbrado. Se genera en la ficha de la empresa del sistema de facturación, junto con el token. Es obligatorio y distinto del token: si se deja vacío, los avisos se rechazan y los pedidos sólo se actualizan por sondeo.', 'facturacionmozart-woocommerce-plugin' ); ?></p>
 						</td>
 					</tr>
 					<tr>
