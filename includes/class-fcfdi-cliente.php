@@ -162,8 +162,11 @@ class FCFDI_Cliente {
 	private static function render_perfil_fiscal( $user_id ) {
 		// Guardado del propio formulario de perfil.
 		if ( isset( $_POST['fcfdi_guardar_perfil'] ) && check_admin_referer( 'fcfdi_perfil' ) ) {
-			self::guardar_perfil_desde_post( $user_id );
-			wc_add_notice( __( 'Perfil fiscal guardado.', 'facturacionmozart-woocommerce-plugin' ), 'success' );
+			// Sólo se confirma si los datos pasaron la validación; si no, el propio método
+			// ya dejó los avisos de qué corregir.
+			if ( self::guardar_perfil_desde_post( $user_id ) ) {
+				wc_add_notice( __( 'Perfil fiscal guardado.', 'facturacionmozart-woocommerce-plugin' ), 'success' );
+			}
 		}
 
 		$val = function ( $campo ) use ( $user_id ) {
@@ -246,9 +249,37 @@ class FCFDI_Cliente {
 			'uso_cfdi'      => isset( $_POST['fcfdi_uso_cfdi'] ) ? sanitize_text_field( wp_unslash( $_POST['fcfdi_uso_cfdi'] ) ) : '',
 		);
 		// phpcs:enable
+
+		// El checkout valida estos mismos datos, pero el perfil no lo hacía: se podía
+		// guardar un RFC mal escrito, autocompletarse solo en la siguiente compra y hacer
+		// fallar el checkout sin que el cliente relacionara una cosa con la otra. Aquí se
+		// avisa en el momento, que es cuando puede corregirlo.
+		//
+		// Un campo vacío se acepta: un perfil a medias es legítimo, sólo autocompleta menos.
+		$errores = array();
+		if ( '' !== $mapa['rfc'] && ! preg_match( '/^([A-ZÑ&]{3,4})\d{6}([A-Z\d]{3})$/', $mapa['rfc'] ) ) {
+			$errores[] = __( 'El RFC no tiene un formato válido.', 'facturacionmozart-woocommerce-plugin' );
+		}
+		if ( '' !== $mapa['cp'] && ! preg_match( '/^\d{5}$/', $mapa['cp'] ) ) {
+			$errores[] = __( 'El código postal fiscal debe tener 5 dígitos.', 'facturacionmozart-woocommerce-plugin' );
+		}
+		if ( '' !== $mapa['uso_cfdi'] && '' !== $mapa['regimen_fiscal']
+			&& class_exists( 'FCFDI_Checkout' )
+			&& ! FCFDI_Checkout::combo_valido( $mapa['uso_cfdi'], $mapa['regimen_fiscal'] ) ) {
+			$errores[] = FCFDI_Checkout::mensaje_error( 'USO_CFDI_INCOMPATIBLE' );
+		}
+
+		if ( ! empty( $errores ) ) {
+			foreach ( $errores as $e ) {
+				wc_add_notice( $e, 'error' );
+			}
+			return false;
+		}
+
 		foreach ( $mapa as $campo => $valor ) {
 			update_user_meta( $user_id, 'fcfdi_perfil_' . $campo, $valor );
 		}
+		return true;
 	}
 
 	/**
