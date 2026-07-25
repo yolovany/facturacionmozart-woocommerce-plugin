@@ -5,12 +5,13 @@
  * Description:        Genera facturas CFDI automáticamente para cada pedido de WooCommerce a través del puente REST del sistema de facturación. El cliente puede solicitar factura con su RFC en el checkout; si no, se factura a público en general.
  * Version:           1.13.1
  * Requires at least: 6.0
+ * Tested up to:      7.0
  * Requires PHP:      7.4
  * Author:            Infotek
  * License:           GPL-2.0-or-later
  * Text Domain:       facturacionmozart-woocommerce-plugin
  * WC requires at least: 6.0
- * WC tested up to:   9.0
+ * WC tested up to:   10.9
  *
  * @package FacturacionCFDI
  */
