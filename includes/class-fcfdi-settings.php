@@ -258,7 +258,7 @@ class FCFDI_Settings {
 								class="regular-text" autocomplete="off" value=""
 								placeholder="<?php echo esc_attr( self::placeholder_secreto( 'webhook_secret' ) ); ?>" />
 							<p class="description">
-								<?php esc_html_e( 'Secreto con el que el puente firma sus avisos de timbrado. Se genera en la ficha de la empresa del sistema de facturación, junto con el token. Es obligatorio y distinto del token: si se deja vacío, los avisos se rechazan y los pedidos sólo se actualizan por sondeo.', 'facturacionmozart-woocommerce-plugin' ); ?>
+								<?php esc_html_e( 'Secreto con el que el puente firma sus avisos de timbrado. Te lo entrega tu proveedor de facturación junto con el token, y es un valor distinto: el token autentica lo que esta tienda envía, y el secreto verifica lo que recibe. Si se deja vacío, los avisos se rechazan y los pedidos se actualizan sólo por sondeo.', 'facturacionmozart-woocommerce-plugin' ); ?>
 								<?php echo esc_html( self::ayuda_secreto() ); ?>
 							</p>
 						</td>
@@ -329,17 +329,19 @@ class FCFDI_Settings {
 			$pruebas  = ! empty( $body['timbrado_pruebas'] ) ? __( ' (modo PRUEBAS)', 'facturacionmozart-woocommerce-plugin' ) : '';
 			$mensaje  = '✅ ' . sprintf( __( 'Conexión correcta. Comercio: %1$s%2$s', 'facturacionmozart-woocommerce-plugin' ), $comercio, $pruebas );
 
-			// Diagnóstico del endurecimiento que reporta el puente. Son avisos, no errores:
-			// la conexión funciona igual, pero conviene dejar la configuración completa.
+			// Diagnóstico opcional que el puente puede reportar en /health. Son avisos, no
+			// errores: la conexión funciona igual, pero señalan una configuración a medias.
+			// Los textos describen el estado observable, sin asumir cómo esté implementado
+			// el backend: cualquiera compatible puede enviar estos campos.
 			$avisos = array();
 			if ( isset( $body['esquema_fase2'] ) && ! $body['esquema_fase2'] ) {
-				$avisos[] = __( 'el puente aún opera con el esquema anterior (la migración no se ha aplicado)', 'facturacionmozart-woocommerce-plugin' );
+				$avisos[] = __( 'el puente reporta que su almacenamiento no está al día', 'facturacionmozart-woocommerce-plugin' );
 			}
 			if ( isset( $body['secreto_webhook'] ) && ! $body['secreto_webhook'] ) {
-				$avisos[] = __( 'el comercio no tiene secreto de webhook propio', 'facturacionmozart-woocommerce-plugin' );
+				$avisos[] = __( 'este comercio no tiene secreto de webhook propio, así que no recibirá avisos de timbrado', 'facturacionmozart-woocommerce-plugin' );
 			}
 			if ( isset( $body['token_hasheado'] ) && ! $body['token_hasheado'] ) {
-				$avisos[] = __( 'el token aún se guarda sin cifrar en el puente', 'facturacionmozart-woocommerce-plugin' );
+				$avisos[] = __( 'el puente guarda el token de forma recuperable, en vez de sólo su hash', 'facturacionmozart-woocommerce-plugin' );
 			}
 			if ( isset( $body['dominio_configurado'] ) && ! $body['dominio_configurado'] ) {
 				$avisos[] = __( 'no hay dominio autorizado configurado para este comercio', 'facturacionmozart-woocommerce-plugin' );

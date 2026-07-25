@@ -4,7 +4,7 @@
 ![WordPress](https://img.shields.io/badge/WordPress-6.0%2B-21759b.svg)
 ![WooCommerce](https://img.shields.io/badge/WooCommerce-6.0%2B-96588a.svg)
 ![PHP](https://img.shields.io/badge/PHP-7.4%2B-777bb4.svg)
-![Version](https://img.shields.io/badge/version-1.12.1-success.svg)
+![Version](https://img.shields.io/badge/version-1.13.1-success.svg)
 
 Plugin de WordPress/WooCommerce que genera **facturas CFDI (México)** automáticamente
 para cada pedido, hablando por REST con un backend/puente de facturación propio.
@@ -108,10 +108,10 @@ facturación propio (el "puente"), autenticado con un Bearer token. Esta secció
 **contrato** que ese backend debe cumplir para ser compatible con el plugin —
 independientemente de con qué tecnología esté implementado.
 
-> La implementación de referencia es el sistema **FacturacionMozart** (.NET), que expone
-> este contrato bajo `api/v1/`. Si usas ese backend, su README documenta además el
-> despliegue y la operación. Aquí se describe únicamente el contrato observable desde el
-> plugin, para que puedas implementar (o auditar) un backend compatible.
+> Lo que sigue es el contrato observable desde el plugin: rutas, payloads, códigos y
+> comportamiento esperado. Con eso basta para implementar un backend compatible, o para
+> auditar uno existente. El despliegue y la operación del backend quedan fuera de este
+> documento, porque dependen de cómo esté implementado.
 
 ## Convenciones
 
@@ -236,6 +236,18 @@ idempotente si ya estaba cancelada; `409` si no es cancelable.
 
 Usado por el botón "Probar conexión". **Response:**
 `200 { "status":"ok", "version":"…", "timbrado_pruebas":bool, "comercio":"…" }`.
+
+El backend puede añadir estos campos **opcionales** de diagnóstico. Si vienen y valen
+`false`, el plugin lo muestra como aviso junto al resultado de la prueba; si no vienen, no
+se dice nada. Sirven para que el comerciante detecte una configuración a medias sin entrar
+al backend:
+
+| Campo | `false` significa |
+|---|---|
+| `secreto_webhook` | El comercio no tiene secreto de webhook propio, así que no recibirá avisos de timbrado. |
+| `token_hasheado` | El backend guarda el token de forma recuperable, en vez de sólo su hash. |
+| `dominio_configurado` | No hay restricción de origen para este comercio. |
+| `esquema_fase2` | El backend reporta que su almacenamiento no está al día. |
 
 ### `GET /catalogos/regimen-uso` — catálogo y matriz de compatibilidad
 
