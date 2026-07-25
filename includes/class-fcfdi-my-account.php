@@ -231,8 +231,17 @@ class FCFDI_My_Account {
 			wp_die( esc_html__( 'No fue posible obtener el archivo del puente.', 'facturacionmozart-woocommerce-plugin' ), '', array( 'response' => 502 ) );
 		}
 
-		$tipo     = ( 'pdf' === $formato ) ? 'application/pdf' : 'application/xml';
-		$nombre   = ( $order->get_meta( '_fcfdi_uuid' ) ? $order->get_meta( '_fcfdi_uuid' ) : $factura_id ) . '.' . $formato;
+		$tipo = ( 'pdf' === $formato ) ? 'application/pdf' : 'application/xml';
+
+		// El nombre sale de metadatos del pedido, que a su vez vienen de la respuesta del
+		// puente y del webhook. sanitize_file_name descarta comillas y separadores de ruta,
+		// que en la cabecera Content-Disposition permitirían alterar el nombre del archivo
+		// que se guarda en el equipo del cliente.
+		$base   = $order->get_meta( '_fcfdi_uuid' ) ? $order->get_meta( '_fcfdi_uuid' ) : $factura_id;
+		$nombre = sanitize_file_name( $base . '.' . $formato );
+		if ( '' === $nombre || '.' === $nombre[0] ) {
+			$nombre = 'cfdi.' . $formato;
+		}
 
 		nocache_headers();
 		header( 'Content-Type: ' . $tipo );
