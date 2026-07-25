@@ -30,6 +30,9 @@ para cada pedido, hablando por REST con un backend/puente de facturación propio
 - Cuenta sin fricción: al comprar se crea la cuenta del cliente automáticamente (sin
   contraseña) y se guardan sus datos de facturación/envío; el acceso posterior es por
   "enlace de acceso" al correo (un solo uso, con caducidad), sin contraseñas que recordar.
+  **Sólo para cuentas de cliente:** quien administra la tienda entra con su contraseña,
+  porque el enlace abriría una sesión con todas sus capacidades y su seguridad quedaría
+  reducida a la del buzón de correo.
 - Webhook + polling para el estatus del timbrado; columna y acción de reintento en el
   admin de pedidos (HPOS y legacy).
 
@@ -55,6 +58,13 @@ Si no tienes un backend propio, puedes explorar el alcance del plugin con la
 - PHP 7.4+.
 - Un backend/puente REST de facturación compatible (ver [Contrato del API
   REST](#contrato-del-api-rest)).
+- **HTTPS en la URL del backend.** El token de API viaja en la cabecera `Authorization` de
+  cada petición; con una dirección `http` queda expuesto a quien observe la red. El plugin
+  avisa en el panel si detecta una URL sin cifrar (se exceptúan destinos locales de
+  desarrollo).
+
+Probado con WordPress 7.0, WooCommerce 10.9 y PHP 8.2, incluido el almacenamiento de
+pedidos de alto rendimiento (HPOS) activado.
 
 ## Instalación
 
@@ -248,10 +258,14 @@ resolverse el timbrado, autenticándose con el header **`X-FCFDI-Token`**. El pl
 verifica ese valor antes de aceptar la notificación.
 
 El valor esperado es el **secreto del webhook** configurado en los ajustes del plugin
-("Secreto del webhook"). Es un secreto **distinto del token de API**, para que el backend
-pueda almacenar el token de entrada solo hasheado. Si ese ajuste se deja vacío, el plugin
-espera el token de API — un backend que no implemente secretos separados sigue siendo
-compatible.
+("Secreto del webhook"). Es un secreto **distinto del token de API**, y no admite
+sustituto: si el ajuste está vacío, el plugin rechaza la notificación.
+
+La razón es que el token autentica lo que la tienda envía y el secreto firma lo que la
+tienda recibe. Usar el mismo valor para ambas direcciones hace que comprometer uno rompa
+las dos, y obliga al backend a conservar el token en claro para poder firmar. Un backend
+que quiera enviar webhooks debe implementar el secreto separado; si sólo implementa
+sondeo, no necesita ninguno.
 
 **Cuerpo esperado:** `{ factura_id, order_id, estatus, uuid, codigo, mensaje }`.
 

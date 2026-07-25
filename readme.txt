@@ -99,6 +99,14 @@ El plugin conecta tu tienda WooCommerce con el sistema de facturación CFDI medi
   automáticamente (evita apropiarse de una cuenta ajena); la respuesta a la solicitud de
   enlace es uniforme (no revela qué correos existen). Límite de 1 envío de enlace por
   minuto por cuenta (anti email-bombing).
+* El enlace de acceso es solo para cuentas de cliente. Las cuentas con capacidades de
+  administracion (administrador, gestor de tienda, editor) quedan excluidas: el enlace abre
+  sesion con todas las capacidades del usuario, y su seguridad equivale a la del buzon de
+  correo. Esas cuentas entran con su contrasena. Filtro
+  fcfdi_admite_acceso_sin_password para afinarlo.
+* Los campos de token y secreto de los ajustes no reimprimen su valor: se muestran vacios
+  con la indicacion de si ya hay uno guardado. Dejarlos vacios al guardar conserva el valor;
+  escribir "borrar" lo vacia.
 * En "pedido recibido" se avisa al comprador que se creó su cuenta y cómo entrar (sin
   contraseña), solo cuando la cuenta se creó en silencio para ese pedido.
 * Se suprime el correo nativo "Cuenta nueva" de WooCommerce durante la creación
