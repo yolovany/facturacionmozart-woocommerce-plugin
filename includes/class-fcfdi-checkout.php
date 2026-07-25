@@ -142,6 +142,35 @@ class FCFDI_Checkout {
 			return array( 'ok' => true, 'mensaje' => '' );
 		}
 
+		// 401/403 NO son un dato mal capturado por el comprador: son la credencial o el
+		// origen del comercio mal configurados (token equivocado, dominio de la tienda que no
+		// coincide, HTTPS ausente). Tratarlos como error del cliente detenía la venta con un
+		// mensaje que le pedía revisar unos datos correctos, y nadie sospechaba del token.
+		// Se deja pasar la compra --el timbrado se reintentará después-- y el problema real
+		// queda en el log, que es donde el comerciante puede verlo.
+		$codigo_http = (int) $res['code'];
+		if ( 401 === $codigo_http || 403 === $codigo_http ) {
+			$cuerpo = is_array( $res['body'] ) ? $res['body'] : array();
+			error_log( // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log
+				sprintf(
+					'[FCFDI] El puente rechazo la validacion previa con HTTP %d (%s). Revisa el token de API, el secreto y el dominio autorizado del comercio. La compra NO se bloqueo.',
+					$codigo_http,
+					isset( $cuerpo['codigo'] ) ? $cuerpo['codigo'] : 'sin codigo'
+				)
+			);
+
+			/**
+			 * Se dispara cuando el puente rechaza la validación previa por configuración.
+			 * Útil para avisar al administrador de la tienda.
+			 *
+			 * @param int   $codigo_http Código HTTP devuelto por el puente.
+			 * @param array $cuerpo      Cuerpo de la respuesta.
+			 */
+			do_action( 'fcfdi_preflight_no_autorizado', $codigo_http, $cuerpo );
+
+			return array( 'ok' => true, 'mensaje' => '' );
+		}
+
 		// 4xx: dato del cliente incorrecto. Traducir a mensaje accionable.
 		$body   = is_array( $res['body'] ) ? $res['body'] : array();
 		$codigo = isset( $body['codigo'] ) ? $body['codigo'] : '';
