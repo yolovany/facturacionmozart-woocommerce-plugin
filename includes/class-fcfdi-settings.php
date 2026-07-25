@@ -21,6 +21,7 @@ class FCFDI_Settings {
 		add_action( 'admin_init', array( __CLASS__, 'register' ) );
 		add_action( 'wp_ajax_fcfdi_probar_conexion', array( __CLASS__, 'ajax_probar_conexion' ) );
 		add_action( 'admin_notices', array( __CLASS__, 'aviso_sin_configurar' ) );
+		add_action( 'admin_notices', array( __CLASS__, 'aviso_url_insegura' ) );
 	}
 
 	/**
@@ -30,6 +31,55 @@ class FCFDI_Settings {
 	 * Se muestra sólo a quien puede gestionar WooCommerce y no en la propia pantalla de
 	 * ajustes (ahí el formulario ya es evidente).
 	 */
+	/**
+	 * True si la URL del puente manda el token por un canal sin cifrar.
+	 *
+	 * El token de API viaja en la cabecera Authorization de CADA petición. Con una URL http
+	 * queda expuesto a cualquiera que observe la red entre la tienda y el puente. El puente
+	 * rechaza esas peticiones, pero eso ocurre DESPUÉS: el token ya viajó en claro.
+	 *
+	 * Se exceptúan los destinos locales, donde el tráfico no sale de la máquina o de la red
+	 * del entorno de pruebas, para no estorbar en QA.
+	 *
+	 * @return bool
+	 */
+	public static function url_insegura() {
+		$url = self::get_api_url();
+		if ( '' === $url ) {
+			return false;
+		}
+
+		$partes = wp_parse_url( $url );
+		if ( empty( $partes['scheme'] ) || 'https' === strtolower( $partes['scheme'] ) ) {
+			return false;
+		}
+
+		$host = isset( $partes['host'] ) ? strtolower( $partes['host'] ) : '';
+		$locales = array( 'localhost', '127.0.0.1', '::1', 'host.docker.internal' );
+		if ( in_array( $host, $locales, true ) ) {
+			return false;
+		}
+		// Nombres de servicio sin punto (p. ej. "bridge" en Docker) y sufijos de red interna.
+		if ( false === strpos( $host, '.' ) || preg_match( '/\.(local|test|localhost|internal)$/', $host ) ) {
+			return false;
+		}
+
+		return true;
+	}
+
+	/**
+	 * Avisa si el token se está enviando por un canal sin cifrar.
+	 */
+	public static function aviso_url_insegura() {
+		if ( ! current_user_can( 'manage_woocommerce' ) || ! self::url_insegura() ) {
+			return;
+		}
+		$url = admin_url( 'admin.php?page=fcfdi-settings' );
+		echo '<div class="notice notice-error"><p><strong>' . esc_html__( 'Facturación CFDI', 'facturacionmozart-woocommerce-plugin' ) . ':</strong> '
+			. esc_html__( 'la URL del puente no usa HTTPS. El token de API se envía en cada petición y viaja sin cifrar, al alcance de cualquiera que observe la red. Corrige la dirección para que empiece por https://.', 'facturacionmozart-woocommerce-plugin' )
+			. ' <a href="' . esc_url( $url ) . '">' . esc_html__( 'Revisar la configuración', 'facturacionmozart-woocommerce-plugin' ) . '</a>.</p></div>';
+	}
+
 	public static function aviso_sin_configurar() {
 		if ( ! current_user_can( 'manage_woocommerce' ) || self::esta_configurado() ) {
 			return;
