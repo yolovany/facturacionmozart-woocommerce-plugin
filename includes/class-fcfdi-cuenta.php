@@ -207,6 +207,49 @@ class FCFDI_Cuenta {
 	}
 
 	/**
+	 * Capacidades que descartan a una cuenta del acceso sin contraseña. Cubren administrador,
+	 * editor y los roles de tienda (shop_manager), que es quien gestiona pedidos y clientes.
+	 *
+	 * @var string[]
+	 */
+	private static $capacidades_privilegiadas = array(
+		'manage_options',
+		'manage_woocommerce',
+		'edit_posts',
+		'edit_users',
+		'edit_shop_orders',
+	);
+
+	/**
+	 * True si la cuenta puede entrar con el enlace de acceso.
+	 *
+	 * El enlace existe para que un comprador vea sus facturas sin recordar una contraseña, y
+	 * su seguridad equivale a la del buzón de correo: quien lea el correo, entra. Eso es
+	 * razonable para un cliente y no lo es para quien administra la tienda, porque
+	 * wc_set_customer_auth_cookie() abre una sesión con TODAS las capacidades del usuario.
+	 * Sin este filtro, el plugin convertía cualquier cuenta de administrador en una cuenta
+	 * accesible sin contraseña ni segundo factor.
+	 *
+	 * @param WP_User $user Usuario.
+	 * @return bool
+	 */
+	private static function admite_acceso_sin_password( $user ) {
+		foreach ( self::$capacidades_privilegiadas as $cap ) {
+			if ( user_can( $user, $cap ) ) {
+				return false;
+			}
+		}
+
+		/**
+		 * Permite afinar qué cuentas admiten el acceso sin contraseña.
+		 *
+		 * @param bool    $admite Si la cuenta puede usar el enlace.
+		 * @param WP_User $user   Usuario evaluado.
+		 */
+		return (bool) apply_filters( 'fcfdi_admite_acceso_sin_password', true, $user );
+	}
+
+	/**
 	 * Procesa la petición de enlace de acceso: si el correo tiene cuenta, le envía el enlace.
 	 * Responde igual exista o no el correo (no filtra qué correos están registrados).
 	 */
@@ -218,7 +261,7 @@ class FCFDI_Cuenta {
 
 		if ( $email && is_email( $email ) ) {
 			$user = get_user_by( 'email', $email );
-			if ( $user ) {
+			if ( $user && self::admite_acceso_sin_password( $user ) ) {
 				self::enviar_enlace( $user );
 			}
 		}
@@ -380,6 +423,15 @@ class FCFDI_Cuenta {
 		if ( ! $uid || '' === $token ) {
 			return false;
 		}
+
+		// Se comprueba también aquí, no sólo al emitir: un token generado antes de esta
+		// restricción —o por una cuenta que después ganó privilegios— no debe seguir
+		// sirviendo para abrir una sesión administrativa.
+		$user = get_user_by( 'id', $uid );
+		if ( ! $user || ! self::admite_acceso_sin_password( $user ) ) {
+			return false;
+		}
+
 		$hash = (string) get_user_meta( $uid, self::META_HASH, true );
 		$exp  = (int) get_user_meta( $uid, self::META_EXP, true );
 		if ( '' === $hash || ! $exp || time() > $exp ) {
