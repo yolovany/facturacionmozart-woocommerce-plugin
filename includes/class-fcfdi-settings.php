@@ -13,6 +13,9 @@ class FCFDI_Settings {
 
 	const OPTION = 'fcfdi_settings';
 
+	/** Texto que hay que escribir en un campo secreto para dejarlo vacío. */
+	const BORRAR = 'borrar';
+
 	public static function init() {
 		add_action( 'admin_menu', array( __CLASS__, 'menu' ) );
 		add_action( 'admin_init', array( __CLASS__, 'register' ) );
@@ -109,9 +112,64 @@ class FCFDI_Settings {
 	public static function sanitize( $input ) {
 		return array(
 			'api_url'          => esc_url_raw( isset( $input['api_url'] ) ? $input['api_url'] : '' ),
-			'api_token'        => sanitize_text_field( isset( $input['api_token'] ) ? $input['api_token'] : '' ),
-			'webhook_secret'   => sanitize_text_field( isset( $input['webhook_secret'] ) ? $input['webhook_secret'] : '' ),
+			'api_token'        => self::sanear_secreto( $input, 'api_token' ),
+			'webhook_secret'   => self::sanear_secreto( $input, 'webhook_secret' ),
 			'facturar_siempre' => empty( $input['facturar_siempre'] ) ? 'no' : 'si',
+		);
+	}
+
+	/**
+	 * Sanea un campo secreto conservando el valor guardado cuando llega vacío.
+	 *
+	 * El formulario ya no reimprime estos valores (ver render), así que un campo vacío
+	 * significa "no lo estoy cambiando", no "bórralo". Para dejarlo sin valor se escribe el
+	 * texto de borrado, que es una acción explícita y no un descuido al guardar la página.
+	 *
+	 * @param array  $input Entrada del formulario.
+	 * @param string $clave Clave del secreto.
+	 * @return string
+	 */
+	private static function sanear_secreto( $input, $clave ) {
+		$valor = isset( $input[ $clave ] ) ? trim( sanitize_text_field( $input[ $clave ] ) ) : '';
+
+		if ( '' === $valor ) {
+			return (string) self::get( $clave );
+		}
+
+		if ( self::BORRAR === strtolower( $valor ) ) {
+			return '';
+		}
+
+		return $valor;
+	}
+
+	/**
+	 * Texto del campo vacío: dice si el secreto ya está guardado, sin revelarlo.
+	 *
+	 * Estos campos ya no reimprimen su valor. Antes lo hacían, así que el token y el secreto
+	 * viajaban al navegador en el HTML de la página de ajustes cada vez que se abría —
+	 * visibles en el código fuente y al alcance de cualquier XSS del panel—, sin que hubiera
+	 * ninguna razón para mandarlos de vuelta: quien los conoce es quien los escribió.
+	 *
+	 * @param string $clave Clave del secreto.
+	 * @return string
+	 */
+	private static function placeholder_secreto( $clave ) {
+		return '' !== (string) self::get( $clave )
+			? __( 'Guardado — escribe uno nuevo para reemplazarlo', 'facturacionmozart-woocommerce-plugin' )
+			: __( 'Sin configurar', 'facturacionmozart-woocommerce-plugin' );
+	}
+
+	/**
+	 * Aclaración de qué pasa al guardar con el campo vacío.
+	 *
+	 * @return string
+	 */
+	private static function ayuda_secreto() {
+		/* translators: %s: palabra que hay que escribir para borrar el valor guardado. */
+		return sprintf(
+			__( 'Déjalo vacío para conservar el valor guardado; escribe «%s» para dejarlo sin valor.', 'facturacionmozart-woocommerce-plugin' ),
+			self::BORRAR
 		);
 	}
 
@@ -135,18 +193,24 @@ class FCFDI_Settings {
 						<th scope="row"><label for="fcfdi_api_token"><?php esc_html_e( 'Token de API', 'facturacionmozart-woocommerce-plugin' ); ?></label></th>
 						<td>
 							<input name="<?php echo esc_attr( self::OPTION ); ?>[api_token]" id="fcfdi_api_token" type="password"
-								class="regular-text" autocomplete="off"
-								value="<?php echo esc_attr( self::get( 'api_token' ) ); ?>" />
-							<p class="description"><?php esc_html_e( 'Token Bearer entregado por el proveedor de facturación.', 'facturacionmozart-woocommerce-plugin' ); ?></p>
+								class="regular-text" autocomplete="off" value=""
+								placeholder="<?php echo esc_attr( self::placeholder_secreto( 'api_token' ) ); ?>" />
+							<p class="description">
+								<?php esc_html_e( 'Token Bearer entregado por el proveedor de facturación.', 'facturacionmozart-woocommerce-plugin' ); ?>
+								<?php echo esc_html( self::ayuda_secreto() ); ?>
+							</p>
 						</td>
 					</tr>
 					<tr>
 						<th scope="row"><label for="fcfdi_webhook_secret"><?php esc_html_e( 'Secreto del webhook', 'facturacionmozart-woocommerce-plugin' ); ?></label></th>
 						<td>
 							<input name="<?php echo esc_attr( self::OPTION ); ?>[webhook_secret]" id="fcfdi_webhook_secret" type="password"
-								class="regular-text" autocomplete="off"
-								value="<?php echo esc_attr( self::get( 'webhook_secret' ) ); ?>" />
-							<p class="description"><?php esc_html_e( 'Secreto con el que el puente firma sus avisos de timbrado. Se genera en la ficha de la empresa del sistema de facturación, junto con el token. Es obligatorio y distinto del token: si se deja vacío, los avisos se rechazan y los pedidos sólo se actualizan por sondeo.', 'facturacionmozart-woocommerce-plugin' ); ?></p>
+								class="regular-text" autocomplete="off" value=""
+								placeholder="<?php echo esc_attr( self::placeholder_secreto( 'webhook_secret' ) ); ?>" />
+							<p class="description">
+								<?php esc_html_e( 'Secreto con el que el puente firma sus avisos de timbrado. Se genera en la ficha de la empresa del sistema de facturación, junto con el token. Es obligatorio y distinto del token: si se deja vacío, los avisos se rechazan y los pedidos sólo se actualizan por sondeo.', 'facturacionmozart-woocommerce-plugin' ); ?>
+								<?php echo esc_html( self::ayuda_secreto() ); ?>
+							</p>
 						</td>
 					</tr>
 					<tr>
