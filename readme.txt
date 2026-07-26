@@ -2,11 +2,11 @@
 Contributors: infotek
 Tags: woocommerce, cfdi, facturacion, sat, mexico
 Requires at least: 6.0
-Tested up to: 6.6
+Tested up to: 7.0
 Requires PHP: 7.4
 WC requires at least: 6.0
-WC tested up to: 9.0
-Stable tag: 1.13.1
+WC tested up to: 10.9
+Stable tag: 1.14.0
 License: GPLv2 or later
 
 Genera facturas CFDI automáticamente para cada pedido de WooCommerce a través del puente REST del sistema de facturación.
@@ -46,6 +46,42 @@ El plugin conecta tu tienda WooCommerce con el sistema de facturación CFDI medi
 
 == Changelog ==
 
+= 1.14.0 =
+
+Versión de seguridad. Se recomienda actualizar.
+
+Cambios que requieren tu atención al actualizar:
+
+* El "Secreto del webhook" pasa a ser obligatorio para recibir avisos de timbrado: ya no se
+  usa el token de API en su lugar. Si el ajuste está vacío, los avisos se rechazan y los
+  pedidos se actualizan sólo por sondeo (más lento, pero siguen actualizándose). Captúralo
+  en WooCommerce → Ajustes → Facturación CFDI con el valor que te dé tu proveedor.
+  Motivo: usar el mismo valor para autenticar lo que la tienda envía y para verificar lo
+  que recibe hace que comprometer uno afecte a ambas direcciones.
+* El "enlace de acceso" queda limitado a cuentas de cliente. Quien administra la tienda
+  (administrador, gestor de tienda, editor) entra con su contraseña. Motivo: el enlace abre
+  sesión con todas las capacidades del usuario, y su seguridad equivale a la del buzón de
+  correo. Filtro fcfdi_admite_acceso_sin_password para ajustarlo.
+* Los campos de token y secreto ya no muestran su valor guardado: aparecen vacíos con la
+  indicación de si ya hay uno. Dejarlos vacíos al guardar CONSERVA el valor; para vaciarlos
+  se escribe "borrar". Si al abrir los ajustes parecen vacíos, no se perdió nada.
+
+Otros cambios:
+
+* Un token o un dominio mal configurados ya no detienen el checkout. Antes, la respuesta
+  401/403 del puente se trataba como un dato incorrecto del comprador y se le pedía revisar
+  unos datos fiscales que estaban bien, perdiendo la venta. Ahora la compra sigue, el
+  timbrado se reintenta después y el motivo real queda en el log. Nuevo hook
+  fcfdi_preflight_no_autorizado.
+* Aviso en el panel si la URL del puente no usa HTTPS: el token viaja en cada petición y sin
+  cifrado queda expuesto. Se exceptúan destinos locales de desarrollo.
+* El perfil fiscal de Mi Cuenta valida los datos al guardarlos, con los mismos criterios que
+  el checkout. Antes admitía un RFC mal escrito que después hacía fallar la compra.
+* El nombre del archivo CFDI que se descarga se sanea antes de ponerlo en la cabecera de
+  descarga.
+* Compatibilidad verificada con WordPress 7.0, WooCommerce 10.9 y PHP 8.2, con el
+  almacenamiento de pedidos de alto rendimiento (HPOS) activado.
+
 = 1.13.1 =
 * "Probar conexión" ahora reporta el estado de la configuración del puente además del
   resultado de la conexión: avisa si falta el secreto de webhook, si el token aún se guarda
@@ -58,7 +94,8 @@ El plugin conecta tu tienda WooCommerce con el sistema de facturación CFDI medi
   de timbrado, separado del token de API. Permite que el puente guarde el token solo
   cifrado (hash), de modo que una filtración de su base de datos no exponga la credencial
   que permite emitir o cancelar CFDI. Si se deja vacío se sigue usando el token de API,
-  por lo que actualizar no rompe una instalación existente.
+  por lo que actualizar no rompe una instalación existente. (Ese respaldo se retiró en
+  1.14.0: el secreto pasó a ser obligatorio.)
 
 = 1.12.3 =
 * Robustez: los fallos de credencial o acceso al puente (401, 403), el timeout de proxy
@@ -99,14 +136,6 @@ El plugin conecta tu tienda WooCommerce con el sistema de facturación CFDI medi
   automáticamente (evita apropiarse de una cuenta ajena); la respuesta a la solicitud de
   enlace es uniforme (no revela qué correos existen). Límite de 1 envío de enlace por
   minuto por cuenta (anti email-bombing).
-* El enlace de acceso es solo para cuentas de cliente. Las cuentas con capacidades de
-  administracion (administrador, gestor de tienda, editor) quedan excluidas: el enlace abre
-  sesion con todas las capacidades del usuario, y su seguridad equivale a la del buzon de
-  correo. Esas cuentas entran con su contrasena. Filtro
-  fcfdi_admite_acceso_sin_password para afinarlo.
-* Los campos de token y secreto de los ajustes no reimprimen su valor: se muestran vacios
-  con la indicacion de si ya hay uno guardado. Dejarlos vacios al guardar conserva el valor;
-  escribir "borrar" lo vacia.
 * En "pedido recibido" se avisa al comprador que se creó su cuenta y cómo entrar (sin
   contraseña), solo cuando la cuenta se creó en silencio para ese pedido.
 * Se suprime el correo nativo "Cuenta nueva" de WooCommerce durante la creación
