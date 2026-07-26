@@ -36,6 +36,7 @@ class FCFDI_Api_Client {
 				'timeout' => 30,
 				'headers' => array(
 					'Authorization'   => 'Bearer ' . $this->token,
+					'X-FCFDI-Plugin-Version' => FCFDI_VERSION,
 					'Content-Type'    => 'application/json',
 					'Idempotency-Key' => (string) $order_id,
 					'Accept'          => 'application/json',
@@ -59,6 +60,7 @@ class FCFDI_Api_Client {
 				'timeout' => 20,
 				'headers' => array(
 					'Authorization' => 'Bearer ' . $this->token,
+					'X-FCFDI-Plugin-Version' => FCFDI_VERSION,
 					'Accept'        => 'application/json',
 				),
 			)
@@ -79,6 +81,7 @@ class FCFDI_Api_Client {
 				'timeout' => 30,
 				'headers' => array(
 					'Authorization' => 'Bearer ' . $this->token,
+					'X-FCFDI-Plugin-Version' => FCFDI_VERSION,
 					'Accept'        => 'application/json',
 				),
 			)
@@ -112,6 +115,7 @@ class FCFDI_Api_Client {
 				'timeout' => 60,
 				'headers' => array(
 					'Authorization' => 'Bearer ' . $this->token,
+					'X-FCFDI-Plugin-Version' => FCFDI_VERSION,
 					'Content-Type'  => 'application/json',
 					'Accept'        => 'application/json',
 				),
@@ -140,6 +144,7 @@ class FCFDI_Api_Client {
 				'timeout' => 20,
 				'headers' => array(
 					'Authorization' => 'Bearer ' . $this->token,
+					'X-FCFDI-Plugin-Version' => FCFDI_VERSION,
 					'Content-Type'  => 'application/json',
 					'Accept'        => 'application/json',
 				),
@@ -162,6 +167,7 @@ class FCFDI_Api_Client {
 				'timeout' => 20,
 				'headers' => array(
 					'Authorization' => 'Bearer ' . $this->token,
+					'X-FCFDI-Plugin-Version' => FCFDI_VERSION,
 					'Accept'        => 'application/json',
 				),
 			)
@@ -186,6 +192,7 @@ class FCFDI_Api_Client {
 				'timeout' => 20,
 				'headers' => array(
 					'Authorization' => 'Bearer ' . $this->token,
+					'X-FCFDI-Plugin-Version' => FCFDI_VERSION,
 					'Content-Type'  => 'application/json',
 					'Accept'        => 'application/json',
 				),
@@ -215,6 +222,7 @@ class FCFDI_Api_Client {
 				'timeout' => 60,
 				'headers' => array(
 					'Authorization' => 'Bearer ' . $this->token,
+					'X-FCFDI-Plugin-Version' => FCFDI_VERSION,
 				),
 			)
 		);
