@@ -167,6 +167,16 @@ backoff; el backend debe soportar al menos el polling. Estados esperados en `est
 Se llama al confirmarse el pago. Headers: `Idempotency-Key: {order_id}` (opcional; si se
 envía, el backend debe exigir que coincida con `order_id`).
 
+> **Sobre la idempotencia.** La clave es `(comercio, order_id)`: repetir la petición del
+> mismo pedido debe devolver el registro existente, no emitir un segundo CFDI. Pero el
+> `order_id` lo pone la tienda y **no es único de por vida**: si el comercio reinstala o
+> migra su WooCommerce, la numeración se reinicia y un pedido nuevo cae sobre uno viejo.
+>
+> Un backend cuidadoso compara el importe antes de tratarlo como repetición y, si no
+> coincide, responde `409` con `ORDER_ID_REUSADO` en vez de entregar el CFDI de otra venta.
+> Sólo el importe: la tienda puede reenviar el mismo pedido con los datos fiscales ya
+> corregidos por el cliente, y eso sí es una repetición legítima.
+
 **Request** (`FacturaRequest`):
 
 ```jsonc
