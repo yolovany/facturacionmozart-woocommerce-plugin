@@ -9,6 +9,7 @@
  * Requires PHP:      7.4
  * Author:            Infotek
  * License:           GPL-2.0-or-later
+ * Update URI:        https://github.com/yolovany/facturacionmozart-woocommerce-plugin
  * Text Domain:       facturacionmozart-woocommerce-plugin
  * WC requires at least: 6.0
  * WC tested up to:   10.9
@@ -67,6 +68,7 @@ add_action(
 		require_once FCFDI_PLUGIN_DIR . 'includes/class-fcfdi-cancel.php';
 		require_once FCFDI_PLUGIN_DIR . 'includes/class-fcfdi-cliente.php';
 		require_once FCFDI_PLUGIN_DIR . 'includes/class-fcfdi-cuenta.php';
+		require_once FCFDI_PLUGIN_DIR . 'includes/class-fcfdi-updater.php';
 
 		FCFDI_Settings::init();
 		FCFDI_Checkout::init();
@@ -79,6 +81,7 @@ add_action(
 		FCFDI_Cancel::init();
 		FCFDI_Cliente::init();
 		FCFDI_Cuenta::init();
+		FCFDI_Updater::init();
 
 		load_plugin_textdomain( 'facturacionmozart-woocommerce-plugin', false, dirname( plugin_basename( __FILE__ ) ) . '/languages' );
 	}
