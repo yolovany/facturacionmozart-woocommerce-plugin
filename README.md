@@ -298,6 +298,7 @@ El plugin traduce estos `codigo` a mensajes accionables para el cliente:
 | `CFDI40147` | RFC y CP no coinciden con el registro del SAT. |
 | `CFDI40157` | El régimen no corresponde al RFC ante el SAT. |
 | `SIN_RECEPTOR` | Faltan los datos fiscales del receptor. |
+| `RECEPTOR_EN_LISTA_69B` | El RFC aparece en el listado del artículo 69-B del SAT (contribuyente definitivo). No es un dato mal capturado: no se emite el CFDI a ese RFC. |
 
 Otros códigos de payload/timbrado (`PAYLOAD_INVALIDO`, `ORDER_ID_FALTANTE`,
 `SIN_CONCEPTOS`, `TOTAL_DESCUADRADO`, `IDEMPOTENCY_MISMATCH`, `PAC_NO_DISPONIBLE`, …) se

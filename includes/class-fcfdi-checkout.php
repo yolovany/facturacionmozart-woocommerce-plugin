@@ -112,6 +112,9 @@ class FCFDI_Checkout {
 			'CFDI40147'             => __( 'Tu RFC y código postal no coinciden con el registro del SAT. Verifica ambos en tu Constancia de Situación Fiscal.', 'facturacionmozart-woocommerce-plugin' ),
 			'CFDI40157'             => __( 'El régimen fiscal no corresponde a tu RFC ante el SAT. Revisa tu Constancia de Situación Fiscal.', 'facturacionmozart-woocommerce-plugin' ),
 			'SIN_RECEPTOR'          => __( 'Faltan tus datos fiscales para facturar.', 'facturacionmozart-woocommerce-plugin' ),
+			// El RFC puede estar bien capturado y aun así no ser facturable: el SAT lo publica
+			// en el listado del artículo 69-B. No se le pide "corregir" un dato correcto.
+			'RECEPTOR_EN_LISTA_69B' => __( 'No podemos emitir factura a ese RFC porque aparece en el listado del artículo 69-B del SAT. Verifica el RFC capturado o utiliza otro para facturar.', 'facturacionmozart-woocommerce-plugin' ),
 		);
 		if ( isset( $mapa[ $codigo ] ) ) {
 			return $mapa[ $codigo ];
