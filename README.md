@@ -4,7 +4,7 @@
 ![WordPress](https://img.shields.io/badge/WordPress-6.0%2B-21759b.svg)
 ![WooCommerce](https://img.shields.io/badge/WooCommerce-6.0%2B-96588a.svg)
 ![PHP](https://img.shields.io/badge/PHP-7.4%2B-777bb4.svg)
-![Version](https://img.shields.io/badge/version-1.14.0-success.svg)
+![Version](https://img.shields.io/badge/version-1.14.1-success.svg)
 
 Plugin de WordPress/WooCommerce que genera **facturas CFDI (México)** automáticamente
 para cada pedido, hablando por REST con un backend/puente de facturación propio.
@@ -74,6 +74,25 @@ pedidos de alto rendimiento (HPOS) activado.
 3. **WooCommerce → Ajustes → Facturación CFDI**: captura la URL de tu backend y el token
    de API, y pulsa "Probar conexión".
 
+## Actualizaciones
+
+El plugin no está en el directorio de WordPress.org, pero **se actualiza como si lo
+estuviera**: comprueba los releases publicados en este repositorio y ofrece la actualización
+por los cauces normales.
+
+- **Desde el panel:** *Escritorio → Actualizaciones*, o el enlace «Actualizar ahora» en la
+  lista de plugins.
+- **Por línea de comandos:** `wp plugin update facturacionmozart-woocommerce-plugin`.
+
+No hace falta descargar ni subir nada a mano.
+
+Además, si el backend lo informa (campo `plugin_version_disponible` de `/health`), aparece
+un aviso en el panel cuando hay una versión más reciente. Así quien opera el servicio de
+facturación puede empujar una actualización sin depender de otro canal.
+
+> La comprobación se consulta como mucho cada 12 horas, y una tienda sin salida a internet
+> sigue funcionando con normalidad: simplemente no verá el aviso.
+
 ## Filtros disponibles
 
 El plugin expone varios filtros (`fcfdi_payload`, `fcfdi_forma_pago`,
@@ -122,6 +141,11 @@ independientemente de con qué tecnología esté implementado.
 - **Autenticación:** todas las peticiones llevan `Authorization: Bearer {token}`. El
   backend resuelve el comercio a partir del token. Se recomienda además forzar HTTPS y,
   opcionalmente, whitelist de IP.
+- **Versión del cliente:** todas las peticiones llevan además
+  `X-FCFDI-Plugin-Version: {versión}`. Un backend puede ignorarla, registrarla para saber
+  qué versión usa cada comercio, o exigir un mínimo y rechazar por debajo de él (ver
+  [Códigos de error](#códigos-de-error)). Tener ese dato es lo que permite avisar a una
+  tienda que se quedó atrás sin tener que preguntárselo.
 - **Formato:** JSON en request y response (`Content-Type: application/json`,
   `Accept: application/json`), salvo las descargas de XML/PDF (binario).
 - **Errores:** cuerpo uniforme `{ "estatus":"error", "codigo":"…", "mensaje":"…", "reintentable":bool }`.
@@ -249,6 +273,12 @@ al backend:
 | `dominio_configurado` | No hay restricción de origen para este comercio. |
 | `esquema_fase2` | El backend reporta que su almacenamiento no está al día. |
 
+Y este otro, que no es un diagnóstico sino un anuncio:
+
+| Campo | Para qué |
+|---|---|
+| `plugin_version_disponible` | Versión del plugin que el backend considera vigente. Si es mayor que la instalada, el plugin lo avisa en el panel de la tienda. Permite a quien opera el servicio empujar una actualización sin depender de otro canal. |
+
 ### `GET /catalogos/regimen-uso` — catálogo y matriz de compatibilidad
 
 Régimen fiscal / uso de CFDI y qué combinaciones son válidas (Anexo 20 SAT). El plugin lo
@@ -304,6 +334,19 @@ Otros códigos de payload/timbrado (`PAYLOAD_INVALIDO`, `ORDER_ID_FALTANTE`,
 `SIN_CONCEPTOS`, `TOTAL_DESCUADRADO`, `IDEMPOTENCY_MISMATCH`, `PAC_NO_DISPONIBLE`, …) se
 muestran con su mensaje tal cual. Los `reintentable:true` (p.ej. PAC caído) llevan al
 plugin a reprogramar en vez de marcar error definitivo.
+
+### Versión del cliente
+
+Un backend que exija una versión mínima del plugin debe responder **`426 Upgrade Required`**
+con el código `PLUGIN_DESACTUALIZADO` y, en `mensaje`, qué versión se exige.
+
+`426` y no `400` o `403`: el recurso existe y la credencial es válida — lo que falta es que
+el cliente se actualice. Los otros códigos llevarían a buscar el problema en el payload o en
+los permisos.
+
+El plugin trata ese caso como fallo de infraestructura, así que reintenta con espera
+progresiva en vez de marcar el pedido en error: si el comerciante actualiza, los pedidos en
+vuelo se recuperan solos.
 
 Los códigos marcados como corregibles por el cliente habilitan, en el admin del pedido, la
 acción "Pedir al cliente corregir datos fiscales".

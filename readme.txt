@@ -6,7 +6,7 @@ Tested up to: 7.0
 Requires PHP: 7.4
 WC requires at least: 6.0
 WC tested up to: 10.9
-Stable tag: 1.14.0
+Stable tag: 1.14.1
 License: GPLv2 or later
 
 Genera facturas CFDI automáticamente para cada pedido de WooCommerce a través del puente REST del sistema de facturación.
@@ -45,6 +45,20 @@ El plugin conecta tu tienda WooCommerce con el sistema de facturación CFDI medi
 * `fcfdi_suprimir_email_cuenta_nueva` — suprime el correo nativo "Cuenta nueva" de WooCommerce en la creación silenciosa (por defecto true).
 
 == Changelog ==
+
+= 1.14.1 =
+
+* El plugin ya se actualiza solo desde el panel (Escritorio → Actualizaciones) y por línea
+  de comandos (wp plugin update facturacionmozart-woocommerce-plugin), comprobando los
+  releases publicados. Antes había que descargar el ZIP y subirlo a mano, así que una
+  corrección de seguridad sólo llegaba a quien alguien avisaba.
+* Aviso en el panel cuando hay una versión más reciente. Si el puente informa cuál considera
+  vigente, se usa ese dato; si no, se consulta el origen directamente.
+* El plugin declara su versión al puente en cada petición (cabecera
+  X-FCFDI-Plugin-Version). Permite al proveedor saber qué versión usa cada tienda y, si lo
+  configura, exigir una mínima.
+* Si el puente responde que la versión es demasiado antigua (426), el pedido se reintenta en
+  vez de quedar en error: al actualizar el plugin, los pedidos en vuelo se recuperan solos.
 
 = 1.14.0 =
 

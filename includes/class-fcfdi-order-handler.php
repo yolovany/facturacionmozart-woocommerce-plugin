@@ -36,7 +36,16 @@ class FCFDI_Order_Handler {
 	 * 401/403: token rotado o inválido, IP fuera de la whitelist. 408/429: timeout del
 	 * proxy y rate-limit. Todos se resuelven solos al corregir la configuración.
 	 */
-	const CODIGOS_INFRA = array( 401, 403, 408, 429 );
+	/**
+	 * Respuestas que no son culpa del pedido, sino de la configuración o del canal, y que
+	 * por tanto se reintentan en vez de marcar el pedido en error definitivo:
+	 * credenciales (401/403), tiempo de espera del proxy (408), límite de peticiones (429)
+	 * y plugin por debajo de la versión mínima que exige el puente (426).
+	 *
+	 * En todos ellos, el pedido en vuelo se recupera solo en cuanto se corrige la causa
+	 * —se arregla el token, se actualiza el plugin—, sin intervención manual.
+	 */
+	const CODIGOS_INFRA = array( 401, 403, 408, 426, 429 );
 
 	public static function init() {
 		// Se factura al confirmarse el pago, no al completar (enviar) el pedido: el
