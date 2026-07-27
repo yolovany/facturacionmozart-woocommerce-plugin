@@ -80,6 +80,9 @@ pedidos de alto rendimiento (HPOS) activado.
 Para una instalación en una tienda existente, con validación de dominio, webhook y prueba
 de pedido, sigue la [guía de implementación para clientes](docs/implementacion-cliente-woocommerce.md).
 
+Hay también un [recorrido de arranque en 21 pantallas](https://yolovany.github.io/facturacionmozart-woocommerce-plugin/arranque-cfdi-la-milpa.html)
+(presentación para el dueño de la tienda y para quien implementa).
+
 ## Actualizaciones
 
 El plugin no está en el directorio de WordPress.org, pero **se actualiza como si lo
