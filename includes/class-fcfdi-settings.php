@@ -159,6 +159,9 @@ class FCFDI_Settings {
 	 * @return array
 	 */
 	public static function sanitize( $input ) {
+		// Una corrección de configuración debe volver a consultar el backend en la
+		// siguiente carga del panel, sin conservar hasta 15 minutos una alerta ya resuelta.
+		delete_transient( 'fcfdi_alertas_operacion_revision' );
 		return array(
 			'api_url'          => esc_url_raw( isset( $input['api_url'] ) ? $input['api_url'] : '' ),
 			'api_token'        => self::sanear_secreto( $input, 'api_token' ),
