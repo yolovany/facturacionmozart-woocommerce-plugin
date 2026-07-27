@@ -294,6 +294,15 @@ Y este otro, que no es un diagnóstico sino un anuncio:
 | Campo | Para qué |
 |---|---|
 | `plugin_version_disponible` | Versión del plugin que el backend considera vigente. Si es mayor que la instalada, el plugin lo avisa en el panel de la tienda. Permite a quien opera el servicio empujar una actualización sin depender de otro canal. |
+| `alertas` | Condiciones operativas vigentes del comercio (configuración incompleta, folios por agotarse). El plugin las muestra como aviso persistente en el panel y las envía por correo al administrador. |
+
+Cada elemento de `alertas` es
+`{ "id":"…", "codigo":"…", "nivel":"error"\|"warning", "mensaje":"…", "accion":"…", "folios_restantes":int\|null }`.
+`id` identifica la condición concreta —incluye el umbral cruzado—, así que el plugin avisa
+una sola vez por condición y vuelve a avisar sólo si cambia. Códigos actuales:
+`CONFIGURACION_INCOMPLETA`, `FOLIOS_POR_AGOTARSE`, `FOLIOS_AGOTADOS`. Un backend que no
+envíe el campo simplemente no genera avisos; uno que envíe códigos nuevos los muestra con
+su `mensaje` y `accion` tal cual.
 
 ### `GET /catalogos/regimen-uso` — catálogo y matriz de compatibilidad
 
