@@ -394,9 +394,23 @@ class FCFDI_Cliente {
 		}
 		$estatus = $order->get_meta( '_fcfdi_estatus' );
 
-		$es_correccion = 'error' === $estatus || 'si' === $order->get_meta( '_fcfdi_correccion_solicitada' );
+		$accion_cliente = 'error' === $estatus
+			&& class_exists( 'FCFDI_Order_Handler' )
+			&& FCFDI_Order_Handler::requiere_accion_cliente( $order );
+
+		// Un fallo del backend, PAC o configuración no se presenta como un problema de
+		// datos fiscales: no se muestra un formulario que induzca al cliente a cambiarlos.
+		if ( 'error' === $estatus && ! $accion_cliente ) {
+			echo '<section class="fcfdi-solicitar woocommerce-info">';
+			echo '<h2>' . esc_html__( 'Tu factura está pendiente', 'facturacionmozart-woocommerce-plugin' ) . '</h2>';
+			echo '<p>' . esc_html( FCFDI_Order_Handler::mensaje_error_cliente( $order ) ) . '</p>';
+			echo '</section>';
+			return;
+		}
+
+		$es_correccion = $accion_cliente || 'si' === $order->get_meta( '_fcfdi_correccion_solicitada' );
 		$titulo = $es_correccion
-			? __( 'Corregir datos de tu factura', 'facturacionmozart-woocommerce-plugin' )
+			? __( 'Actualizar datos y reintentar factura', 'facturacionmozart-woocommerce-plugin' )
 			: __( 'Solicitar factura', 'facturacionmozart-woocommerce-plugin' );
 
 		$user_id = get_current_user_id();
@@ -410,7 +424,10 @@ class FCFDI_Cliente {
 
 		echo '<section class="fcfdi-solicitar"><h2>' . esc_html( $titulo ) . '</h2>';
 		if ( $es_correccion ) {
-			echo '<p>' . esc_html__( 'Revisa y corrige tus datos fiscales para volver a intentar la factura.', 'facturacionmozart-woocommerce-plugin' ) . '</p>';
+			if ( $accion_cliente ) {
+				echo '<div class="woocommerce-error" role="alert">' . esc_html( FCFDI_Order_Handler::mensaje_error_cliente( $order ) ) . '</div>';
+			}
+			echo '<p>' . esc_html__( 'Actualiza los datos necesarios y envía el formulario. Al guardarlos, la factura se volverá a procesar automáticamente.', 'facturacionmozart-woocommerce-plugin' ) . '</p>';
 		} else {
 			echo '<p>' . esc_html__( 'Captura tus datos fiscales para generar el CFDI de este pedido.', 'facturacionmozart-woocommerce-plugin' ) . '</p>';
 		}
@@ -423,7 +440,10 @@ class FCFDI_Cliente {
 		self::campo_texto( 'fcfdi_cp', __( 'Código postal fiscal', 'facturacionmozart-woocommerce-plugin' ), $pref( 'cp', '_fcfdi_cp' ), true );
 		self::campo_select( 'fcfdi_regimen_fiscal', __( 'Régimen fiscal', 'facturacionmozart-woocommerce-plugin' ), FCFDI_Checkout::regimenes(), $pref( 'regimen_fiscal', '_fcfdi_regimen_fiscal' ), true );
 		self::campo_select( 'fcfdi_uso_cfdi', __( 'Uso de CFDI', 'facturacionmozart-woocommerce-plugin' ), FCFDI_Checkout::usos_cfdi(), $pref( 'uso_cfdi', '_fcfdi_uso_cfdi' ), true );
-		echo '<p><button type="submit" class="button woocommerce-Button">' . esc_html__( 'Solicitar factura', 'facturacionmozart-woocommerce-plugin' ) . '</button></p>';
+		$boton = $es_correccion
+			? __( 'Guardar datos y reintentar factura', 'facturacionmozart-woocommerce-plugin' )
+			: __( 'Solicitar factura', 'facturacionmozart-woocommerce-plugin' );
+		echo '<p><button type="submit" class="button woocommerce-Button">' . esc_html( $boton ) . '</button></p>';
 		echo '</form></section>';
 	}
 
@@ -449,6 +469,17 @@ class FCFDI_Cliente {
 		// pedido ya timbrado o con timbrado en proceso.
 		if ( ! self::puede_solicitar( $order ) ) {
 			wc_add_notice( __( 'Este pedido ya tiene una factura o está en proceso.', 'facturacionmozart-woocommerce-plugin' ), 'error' );
+			wp_safe_redirect( $order->get_view_order_url() );
+			exit;
+		}
+
+		// Un cliente no puede forzar cambios/reintentos sobre errores de infraestructura
+		// invocando el endpoint directamente. En ese caso la recuperación es administrativa.
+		if ( 'error' === $order->get_meta( '_fcfdi_estatus' )
+			&& class_exists( 'FCFDI_Order_Handler' )
+			&& ! FCFDI_Order_Handler::requiere_accion_cliente( $order )
+			&& 'si' !== $order->get_meta( '_fcfdi_correccion_solicitada' ) ) {
+			wc_add_notice( FCFDI_Order_Handler::mensaje_error_cliente( $order ), 'notice' );
 			wp_safe_redirect( $order->get_view_order_url() );
 			exit;
 		}
@@ -515,7 +546,7 @@ class FCFDI_Cliente {
 		$order->update_meta_data( '_fcfdi_uso_cfdi', $uso );
 		$order->update_meta_data( '_fcfdi_correccion_solicitada', '' );
 		// Limpia estado de facturación previo para permitir el reintento.
-		foreach ( array( '_fcfdi_factura_id', '_fcfdi_estatus', '_fcfdi_error', '_fcfdi_envio_intentos', '_fcfdi_poll_intentos' ) as $meta ) {
+		foreach ( array( '_fcfdi_factura_id', '_fcfdi_estatus', '_fcfdi_error', '_fcfdi_error_tipo', '_fcfdi_error_reintentable', '_fcfdi_envio_intentos', '_fcfdi_poll_intentos' ) as $meta ) {
 			$order->delete_meta_data( $meta );
 		}
 		$order->save();

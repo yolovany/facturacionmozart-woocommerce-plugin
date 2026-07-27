@@ -103,6 +103,7 @@ class FCFDI_Checkout {
 		$mapa = array(
 			'RFC_FALTANTE'          => __( 'Captura tu RFC para poder facturar.', 'facturacionmozart-woocommerce-plugin' ),
 			'RFC_FORMATO'           => __( 'El RFC no tiene un formato válido. Revísalo en tu Constancia de Situación Fiscal.', 'facturacionmozart-woocommerce-plugin' ),
+			'RFC_INVALIDO'          => __( 'El RFC no fue aceptado para facturación. Revísalo en tu Constancia de Situación Fiscal.', 'facturacionmozart-woocommerce-plugin' ),
 			'REGIMEN_FALTANTE'      => __( 'Selecciona tu régimen fiscal.', 'facturacionmozart-woocommerce-plugin' ),
 			'REGIMEN_INVALIDO'      => __( 'El régimen fiscal seleccionado no es válido.', 'facturacionmozart-woocommerce-plugin' ),
 			'CP_FALTANTE'           => __( 'Captura tu código postal fiscal.', 'facturacionmozart-woocommerce-plugin' ),
@@ -174,9 +175,24 @@ class FCFDI_Checkout {
 			return array( 'ok' => true, 'mensaje' => '' );
 		}
 
-		// 4xx: dato del cliente incorrecto. Traducir a mensaje accionable.
+		// Sólo los códigos de negocio conocidos son atribuibles al cliente. Un 4xx
+		// desconocido (p.ej. versión mínima, límite o configuración del comercio) no
+		// debe bloquear la compra diciendo que sus datos fiscales están mal.
 		$body   = is_array( $res['body'] ) ? $res['body'] : array();
 		$codigo = isset( $body['codigo'] ) ? $body['codigo'] : '';
+		$accion_cliente = class_exists( 'FCFDI_Order_Handler' )
+			&& in_array( $codigo, FCFDI_Order_Handler::CODIGOS_ACCION_CLIENTE, true );
+		if ( ! $accion_cliente ) {
+			error_log( // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log
+				sprintf(
+					'[FCFDI] La validacion previa devolvio HTTP %d (%s), incidencia no atribuible al cliente. La compra NO se bloqueo.',
+					$codigo_http,
+					$codigo ? $codigo : 'sin codigo'
+				)
+			);
+			do_action( 'fcfdi_preflight_incidencia_servicio', $codigo_http, $body );
+			return array( 'ok' => true, 'mensaje' => '' );
+		}
 		$msg    = self::mensaje_error( $codigo, isset( $body['mensaje'] ) ? $body['mensaje'] : '' );
 		return array( 'ok' => false, 'mensaje' => $msg );
 	}

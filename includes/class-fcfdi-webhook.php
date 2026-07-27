@@ -99,15 +99,19 @@ class FCFDI_Webhook {
 		} elseif ( 'error' === $estatus ) {
 			$codigo  = sanitize_text_field( (string) $request->get_param( 'codigo' ) );
 			$mensaje = sanitize_text_field( (string) $request->get_param( 'mensaje' ) );
-			$order->update_meta_data( '_fcfdi_estatus', 'error' );
-			$order->update_meta_data( '_fcfdi_error', $codigo . ': ' . $mensaje );
-			$order->save();
-			$order->add_order_note( '⚠️ ' . sprintf( __( 'Error de facturación (webhook) %1$s: %2$s', 'facturacionmozart-woocommerce-plugin' ), $codigo, $mensaje ) );
-			// Igual que el polling en fallo definitivo: detener el poll pendiente y avisar
-			// al administrador si el pedido está retenido esperando su CFDI.
 			if ( class_exists( 'FCFDI_Order_Handler' ) ) {
+				// Fuente única de clasificación: conserva si es corregible por el cliente
+				// o si corresponde al servicio y evita mostrar mensajes contradictorios.
+				FCFDI_Order_Handler::registrar_error(
+					$order,
+					array(
+						'codigo'       => $codigo,
+						'mensaje'      => $mensaje,
+						'reintentable' => (bool) $request->get_param( 'reintentable' ),
+					),
+					200
+				);
 				FCFDI_Order_Handler::detener_programadas( $order->get_id() );
-				FCFDI_Order_Handler::escalar_si_retenido( $order, $codigo . ': ' . $mensaje );
 			}
 		}
 

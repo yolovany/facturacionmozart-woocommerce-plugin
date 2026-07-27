@@ -47,6 +47,27 @@ class FCFDI_Order_Handler {
 	 */
 	const CODIGOS_INFRA = array( 401, 403, 408, 426, 429 );
 
+	/**
+	 * Errores que el comprador sí puede resolver actualizando los datos del CFDI.
+	 * El resto requiere atención de la tienda o del servicio y nunca debe presentarse
+	 * como si los datos fiscales del cliente fueran incorrectos.
+	 */
+	const CODIGOS_ACCION_CLIENTE = array(
+		'RFC_FALTANTE',
+		'RFC_FORMATO',
+		'RFC_INVALIDO',
+		'REGIMEN_FALTANTE',
+		'REGIMEN_INVALIDO',
+		'CP_FALTANTE',
+		'CP_FORMATO',
+		'USO_CFDI_FALTANTE',
+		'USO_CFDI_INCOMPATIBLE',
+		'CFDI40147',
+		'CFDI40157',
+		'SIN_RECEPTOR',
+		'RECEPTOR_EN_LISTA_69B',
+	);
+
 	public static function init() {
 		// Se factura al confirmarse el pago, no al completar (enviar) el pedido: el
 		// reencuadre PAGADO→FACTURADO→LIBERADO exige factura tras el pago. Los productos
@@ -107,6 +128,41 @@ class FCFDI_Order_Handler {
 		}
 
 		as_enqueue_async_action( self::HOOK_ENVIAR, array( 'order_id' => $order_id ), 'facturacionmozart-woocommerce-plugin' );
+	}
+
+	/**
+	 * Obtiene el código estable guardado como "CODIGO: mensaje".
+	 *
+	 * @param WC_Order $order Pedido.
+	 * @return string
+	 */
+	public static function codigo_error( $order ) {
+		$guardado = (string) $order->get_meta( '_fcfdi_error' );
+		return ( false !== strpos( $guardado, ':' ) ) ? trim( strstr( $guardado, ':', true ) ) : trim( $guardado );
+	}
+
+	/**
+	 * Indica si la recuperación requiere que el comprador actualice datos fiscales.
+	 *
+	 * @param WC_Order $order Pedido.
+	 * @return bool
+	 */
+	public static function requiere_accion_cliente( $order ) {
+		return in_array( self::codigo_error( $order ), self::CODIGOS_ACCION_CLIENTE, true );
+	}
+
+	/**
+	 * Mensaje seguro para el comprador. Los detalles técnicos sólo se muestran al
+	 * administrador; un fallo del servicio no debe culpar a los datos fiscales.
+	 *
+	 * @param WC_Order $order Pedido.
+	 * @return string
+	 */
+	public static function mensaje_error_cliente( $order ) {
+		if ( self::requiere_accion_cliente( $order ) && class_exists( 'FCFDI_Checkout' ) ) {
+			return FCFDI_Checkout::mensaje_error( self::codigo_error( $order ) );
+		}
+		return __( 'Tu pago está confirmado, pero la factura no pudo generarse por una incidencia del servicio. No necesitas modificar tus datos fiscales. La tienda ya puede revisar el problema y reintentar la facturación.', 'facturacionmozart-woocommerce-plugin' );
 	}
 
 	/**
@@ -377,11 +433,14 @@ class FCFDI_Order_Handler {
 	 * @param array    $body  Cuerpo de respuesta.
 	 * @param int      $code  HTTP code.
 	 */
-	private static function registrar_error( $order, $body, $code ) {
-		$codigo  = isset( $body['codigo'] ) ? $body['codigo'] : 'HTTP_' . $code;
-		$mensaje = isset( $body['mensaje'] ) ? $body['mensaje'] : __( 'Error desconocido del puente.', 'facturacionmozart-woocommerce-plugin' );
+	public static function registrar_error( $order, $body, $code ) {
+		$codigo       = isset( $body['codigo'] ) ? sanitize_text_field( (string) $body['codigo'] ) : 'HTTP_' . $code;
+		$mensaje      = isset( $body['mensaje'] ) ? sanitize_text_field( (string) $body['mensaje'] ) : __( 'Error desconocido del puente.', 'facturacionmozart-woocommerce-plugin' );
+		$reintentable = ! empty( $body['reintentable'] );
 		$order->update_meta_data( '_fcfdi_estatus', 'error' );
 		$order->update_meta_data( '_fcfdi_error', $codigo . ': ' . $mensaje );
+		$order->update_meta_data( '_fcfdi_error_tipo', in_array( $codigo, self::CODIGOS_ACCION_CLIENTE, true ) ? 'cliente' : 'servicio' );
+		$order->update_meta_data( '_fcfdi_error_reintentable', $reintentable ? 'si' : 'no' );
 		$order->save();
 		$order->add_order_note( '⚠️ ' . sprintf( __( 'Error de facturación (%1$s): %2$s', 'facturacionmozart-woocommerce-plugin' ), $codigo, $mensaje ) );
 		self::escalar_si_retenido( $order, $codigo . ': ' . $mensaje );
@@ -416,10 +475,19 @@ class FCFDI_Order_Handler {
 		 * @param string   $motivo Motivo del fallo.
 		 */
 		do_action( 'fcfdi_facturacion_retenida', $order, $motivo );
+		$pasos = self::requiere_accion_cliente( $order )
+			? __( "El error requiere datos del cliente:\n1. Abre el pedido en WooCommerce.\n2. Pulsa “Solicitar actualización de datos al cliente”.\n3. El cliente podrá corregirlos y reintentar desde el enlace recibido.", 'facturacionmozart-woocommerce-plugin' )
+			: __( "El error corresponde al servicio o a la configuración, no a los datos fiscales del cliente:\n1. Revisa y corrige la incidencia indicada.\n2. Abre el pedido en WooCommerce.\n3. Pulsa “Reintentar ahora”.", 'facturacionmozart-woocommerce-plugin' );
 		wp_mail(
 			get_option( 'admin_email' ),
 			sprintf( __( '[%1$s] Pedido #%2$s retenido: falló la facturación CFDI', 'facturacionmozart-woocommerce-plugin' ), get_bloginfo( 'name' ), $order->get_order_number() ),
-			sprintf( __( "El pedido #%1\$s pidió factura pero el timbrado no se completó y quedó retenido (en espera) en vez de completado.\n\nMotivo: %2\$s\n\nRevísalo en el admin de WooCommerce.", 'facturacionmozart-woocommerce-plugin' ), $order->get_order_number(), $motivo )
+			sprintf(
+				__( "El pedido #%1\$s pidió factura, pero el timbrado no se completó y quedó retenido (en espera).\n\nMotivo técnico: %2\$s\n\nQué hacer:\n%3\$s\n\nAbrir pedido: %4\$s", 'facturacionmozart-woocommerce-plugin' ),
+				$order->get_order_number(),
+				$motivo,
+				$pasos,
+				$order->get_edit_order_url()
+			)
 		);
 	}
 

@@ -20,7 +20,6 @@ class FCFDI_Settings {
 		add_action( 'admin_menu', array( __CLASS__, 'menu' ) );
 		add_action( 'admin_init', array( __CLASS__, 'register' ) );
 		add_action( 'wp_ajax_fcfdi_probar_conexion', array( __CLASS__, 'ajax_probar_conexion' ) );
-		add_action( 'admin_notices', array( __CLASS__, 'aviso_sin_configurar' ) );
 		add_action( 'admin_notices', array( __CLASS__, 'aviso_url_insegura' ) );
 	}
 
