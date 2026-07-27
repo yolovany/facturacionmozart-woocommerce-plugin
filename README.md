@@ -74,6 +74,9 @@ pedidos de alto rendimiento (HPOS) activado.
 3. **WooCommerce → Ajustes → Facturación CFDI**: captura la URL de tu backend y el token
    de API, y pulsa "Probar conexión".
 
+Para una instalación en una tienda existente, con validación de dominio, webhook y prueba
+de pedido, sigue la [guía de implementación para clientes](docs/implementacion-cliente-woocommerce.md).
+
 ## Actualizaciones
 
 El plugin no está en el directorio de WordPress.org, pero **se actualiza como si lo
