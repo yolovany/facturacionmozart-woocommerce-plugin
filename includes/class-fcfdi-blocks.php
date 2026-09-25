@@ -108,8 +108,10 @@ class FCFDI_Blocks {
 			)
 		);
 
+		$reglas = self::reglas_datos_fiscales();
+
 		woocommerce_register_additional_checkout_field(
-			array(
+			$reglas + array(
 				'id'       => self::field_id( 'rfc' ),
 				'label'    => __( 'RFC', 'facturacionmozart-woocommerce-plugin' ),
 				'location' => 'order',
@@ -118,7 +120,7 @@ class FCFDI_Blocks {
 		);
 
 		woocommerce_register_additional_checkout_field(
-			array(
+			$reglas + array(
 				'id'       => self::field_id( 'razon-social' ),
 				'label'    => __( 'Razón social', 'facturacionmozart-woocommerce-plugin' ),
 				'location' => 'order',
@@ -127,7 +129,7 @@ class FCFDI_Blocks {
 		);
 
 		woocommerce_register_additional_checkout_field(
-			array(
+			$reglas + array(
 				'id'       => self::field_id( 'cp' ),
 				'label'    => __( 'Código postal fiscal', 'facturacionmozart-woocommerce-plugin' ),
 				'location' => 'order',
@@ -136,7 +138,7 @@ class FCFDI_Blocks {
 		);
 
 		woocommerce_register_additional_checkout_field(
-			array(
+			$reglas + array(
 				'id'       => self::field_id( 'regimen-fiscal' ),
 				'label'    => __( 'Régimen fiscal', 'facturacionmozart-woocommerce-plugin' ),
 				'location' => 'order',
@@ -146,13 +148,53 @@ class FCFDI_Blocks {
 		);
 
 		woocommerce_register_additional_checkout_field(
-			array(
+			$reglas + array(
 				'id'       => self::field_id( 'uso-cfdi' ),
 				'label'    => __( 'Uso de CFDI', 'facturacionmozart-woocommerce-plugin' ),
 				'location' => 'order',
 				'type'     => 'select',
 				'options'  => self::opciones( FCFDI_Checkout::usos_cfdi() ),
 			)
+		);
+	}
+
+	/**
+	 * Reglas de los datos fiscales: ocultos hasta marcar "Requiero factura" y obligatorios
+	 * al marcarlo. Antes se mostraban siempre como "(opcional)" aunque el comprador pidiera
+	 * factura. Requiere WooCommerce 9.9+ (reglas condicionales de campos); en versiones
+	 * anteriores los campos quedan visibles como antes y la validación del servidor
+	 * (validar_order) sigue siendo la que exige los datos.
+	 *
+	 * @return array
+	 */
+	private static function reglas_datos_fiscales() {
+		if ( ! defined( 'WC_VERSION' ) || version_compare( WC_VERSION, '9.9', '<' ) ) {
+			return array();
+		}
+
+		$casilla = self::field_id( 'requiere-factura' );
+		$campos  = function ( $condicion ) {
+			return array(
+				'checkout' => array(
+					'properties' => array(
+						'additional_fields' => $condicion,
+					),
+				),
+			);
+		};
+
+		return array(
+			'required' => $campos(
+				array(
+					'properties' => array( $casilla => array( 'const' => true ) ),
+					'required'   => array( $casilla ),
+				)
+			),
+			'hidden'   => $campos(
+				array(
+					'properties' => array( $casilla => array( 'not' => array( 'const' => true ) ) ),
+				)
+			),
 		);
 	}
 
