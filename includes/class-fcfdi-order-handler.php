@@ -549,6 +549,36 @@ class FCFDI_Order_Handler {
 	}
 
 	/**
+	 * Forma de pago del SAT (c_FormaPago) según la pasarela con que se pagó el pedido.
+	 *
+	 * Tarjeta: 04 (crédito), o 28 (débito) si la pasarela lo registra en el pedido.
+	 * Efectivo (OXXO y similares, pago en tienda): 01. Transferencia: 03. Lo que no se
+	 * reconoce queda en 99 (por definir), como antes. Ajustable con el filtro fcfdi_forma_pago.
+	 *
+	 * @param WC_Order $order Pedido.
+	 * @return string
+	 */
+	private static function forma_pago_sat( $order ) {
+		$metodo = $order->get_payment_method();
+
+		if ( in_array( $metodo, array( 'cod', 'woo-mercado-pago-ticket', 'stripe_oxxo' ), true ) ) {
+			return '01';
+		}
+		if ( 'bacs' === $metodo ) {
+			return '03';
+		}
+		if ( in_array( $metodo, array( 'stripe', 'stripe_cc', 'woo-mercado-pago-custom', 'woocommerce_payments' ), true ) ) {
+			foreach ( $order->get_meta_data() as $meta ) {
+				if ( preg_match( '/funding|payment_type/i', $meta->key ) && is_string( $meta->value ) && false !== stripos( $meta->value, 'debit' ) ) {
+					return '28';
+				}
+			}
+			return '04';
+		}
+		return '99';
+	}
+
+	/**
 	 * Construye el payload del contrato a partir del pedido.
 	 *
 	 * @param WC_Order $order Pedido.
@@ -664,7 +694,7 @@ class FCFDI_Order_Handler {
 				'moneda'                => $order->get_currency(),
 			),
 			'pago'             => array(
-				'forma_pago'  => apply_filters( 'fcfdi_forma_pago', '99', $order ),
+				'forma_pago'  => apply_filters( 'fcfdi_forma_pago', self::forma_pago_sat( $order ), $order ),
 				'metodo_pago' => apply_filters( 'fcfdi_metodo_pago', 'PUE', $order ),
 			),
 		);
