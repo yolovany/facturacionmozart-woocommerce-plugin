@@ -525,6 +525,30 @@ class FCFDI_Order_Handler {
 	}
 
 	/**
+	 * Impuesto de una línea para el CFDI, o null si no es objeto de impuesto.
+	 *
+	 * Decide por la tasa que WooCommerce aplicó, no por el importe: un producto con tasa
+	 * 0 % sí es objeto de impuesto (IVA al 0 %); solo una línea sin ninguna tasa aplicada
+	 * es "no objeto". La tasa sale de la tabla de tasas y no de dividir importes, que con
+	 * redondeos o descuentos da valores como 0.160001 que el catálogo del SAT rechaza.
+	 *
+	 * @param array $taxes    get_taxes() de la línea (o la unión de las de envío).
+	 * @param float $importe  Impuesto total de la línea.
+	 * @return array|null
+	 */
+	private static function impuesto_cfdi( $taxes, $importe ) {
+		$tasas = array_keys( (array) ( $taxes['total'] ?? array() ) );
+		if ( ! $tasas ) {
+			return null;
+		}
+		return array(
+			'tipo'    => 'IVA',
+			'tasa'    => round( (float) WC_Tax::get_rate_percent_value( $tasas[0] ) / 100, 6 ),
+			'importe' => round( (float) $importe, 2 ),
+		);
+	}
+
+	/**
 	 * Construye el payload del contrato a partir del pedido.
 	 *
 	 * @param WC_Order $order Pedido.
@@ -561,8 +585,7 @@ class FCFDI_Order_Handler {
 			$linea_tot = (float) $item->get_total();         // ex IVA, después de descuento.
 			$linea_tax = (float) $item->get_total_tax();
 			$desc_item = round( $linea_sub - $linea_tot, 2 );
-			$base      = $linea_tot;
-			$tasa      = $base > 0 ? round( $linea_tax / $base, 6 ) : 0.0;
+			$impuesto  = self::impuesto_cfdi( $item->get_taxes(), $linea_tax );
 
 			$product = $item->get_product();
 			$clave   = $product ? $product->get_meta( '_fcfdi_clave_prod_serv' ) : '';
@@ -575,7 +598,7 @@ class FCFDI_Order_Handler {
 				'valor_unitario'  => $qty > 0 ? round( $linea_sub / $qty, 6 ) : round( $linea_sub, 2 ),
 				'importe'         => round( $linea_sub, 2 ),
 				'descuento'       => $desc_item,
-				'objeto_impuesto' => $linea_tax > 0 ? '02' : '01',
+				'objeto_impuesto' => $impuesto ? '02' : '01',
 			);
 			if ( $clave ) {
 				$concepto['clave_prod_serv'] = $clave;
@@ -583,14 +606,8 @@ class FCFDI_Order_Handler {
 			if ( $unidad ) {
 				$concepto['clave_unidad'] = $unidad;
 			}
-			if ( $linea_tax > 0 ) {
-				$concepto['impuestos'] = array(
-					array(
-						'tipo'    => 'IVA',
-						'tasa'    => $tasa,
-						'importe' => round( $linea_tax, 2 ),
-					),
-				);
+			if ( $impuesto ) {
+				$concepto['impuestos'] = array( $impuesto );
 			}
 
 			$conceptos[] = $concepto;
@@ -603,7 +620,11 @@ class FCFDI_Order_Handler {
 		$envio     = (float) $order->get_shipping_total();
 		$envio_tax = (float) $order->get_shipping_tax();
 		if ( $envio > 0 ) {
-			$tasa_envio = $envio > 0 ? round( $envio_tax / $envio, 6 ) : 0.0;
+			$tasas_envio = array( 'total' => array() );
+			foreach ( $order->get_items( 'shipping' ) as $linea_envio ) {
+				$tasas_envio['total'] += (array) ( $linea_envio->get_taxes()['total'] ?? array() );
+			}
+			$impuesto_envio = self::impuesto_cfdi( $tasas_envio, $envio_tax );
 			$concepto_envio = array(
 				'sku'             => 'ENVIO',
 				'descripcion'     => __( 'Servicio de envío', 'facturacionmozart-woocommerce-plugin' ),
@@ -611,18 +632,12 @@ class FCFDI_Order_Handler {
 				'valor_unitario'  => round( $envio, 2 ),
 				'importe'         => round( $envio, 2 ),
 				'descuento'       => 0,
-				'objeto_impuesto' => $envio_tax > 0 ? '02' : '01',
+				'objeto_impuesto' => $impuesto_envio ? '02' : '01',
 				'clave_prod_serv' => apply_filters( 'fcfdi_clave_prod_serv_envio', '78102200', $order ),
 				'clave_unidad'    => apply_filters( 'fcfdi_clave_unidad_envio', 'E48', $order ),
 			);
-			if ( $envio_tax > 0 ) {
-				$concepto_envio['impuestos'] = array(
-					array(
-						'tipo'    => 'IVA',
-						'tasa'    => $tasa_envio,
-						'importe' => round( $envio_tax, 2 ),
-					),
-				);
+			if ( $impuesto_envio ) {
+				$concepto_envio['impuestos'] = array( $impuesto_envio );
 			}
 			$conceptos[] = $concepto_envio;
 			$subtotal   += round( $envio, 2 );
