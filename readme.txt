@@ -48,8 +48,8 @@ El plugin conecta tu tienda WooCommerce con el sistema de facturación CFDI medi
 
 = 1.15.4 =
 
-* Checkout de bloques: quien ya tiene perfil fiscal encuentra "Requiero factura" marcada y sus
-  datos llenos. Corrige que desde 1.15.2 el perfil guardado no se autollenara.
+* Checkout de bloques: al marcar "Requiero factura", los datos fiscales vacíos se llenan con el
+  perfil guardado del cliente. Corrige que desde 1.15.2 el perfil no se autollenara.
 * Con precios con IVA incluido, la base de cada concepto se calcula desde el precio que pagó
   el cliente y se manda con 6 decimales: el IVA cumple la validación del SAT (base × tasa) y el
   total del CFDI coincide exactamente con lo cobrado.

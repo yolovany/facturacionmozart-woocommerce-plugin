@@ -44,9 +44,8 @@ class FCFDI_Cliente {
 			add_filter( 'woocommerce_get_default_value_for_facturacion-cfdi/' . $slug, array( __CLASS__, 'default_bloques' ), 10, 3 );
 		}
 		// Con los datos fiscales ocultos hasta marcar la casilla (1.15.2), WooCommerce no
-		// aplica los valores por defecto de campos ocultos: quien ya tiene perfil fiscal
-		// encuentra la casilla marcada y sus datos llenos. Si no quiere factura, la desmarca.
-		add_filter( 'woocommerce_get_default_value_for_facturacion-cfdi/requiere-factura', array( __CLASS__, 'default_requiere_factura' ) );
+		// aplica los valores por defecto de campos ocultos: el perfil se llena al marcarla.
+		add_action( 'wp_enqueue_scripts', array( __CLASS__, 'script_perfil_bloques' ) );
 
 		// C4: formulario "solicitar factura después de comprar" + su envío.
 		add_action( 'woocommerce_order_details_after_order_table', array( __CLASS__, 'form_solicitar' ), 20 );
@@ -351,9 +350,38 @@ class FCFDI_Cliente {
 	 * @param mixed  $wc_object Cliente/pedido en contexto.
 	 * @return mixed
 	 */
-	public static function default_requiere_factura( $default ) {
-		$user_id = get_current_user_id();
-		return $user_id && '' !== (string) get_user_meta( $user_id, 'fcfdi_perfil_rfc', true ) ? true : $default;
+	/**
+	 * Checkout de bloques: al marcar "Requiero factura", llena con el perfil guardado del
+	 * cliente los datos fiscales que estén vacíos (no pisa lo que ya haya escrito). Solo para
+	 * clientes con sesión y perfil; la casilla siempre empieza sin marcar.
+	 */
+	public static function script_perfil_bloques() {
+		if ( ! function_exists( 'is_checkout' ) || ! is_checkout() || ! is_user_logged_in() ) {
+			return;
+		}
+		$perfil = array();
+		foreach ( array_keys( self::PERFIL ) as $campo ) {
+			$valor = get_user_meta( get_current_user_id(), 'fcfdi_perfil_' . $campo, true );
+			if ( '' !== (string) $valor ) {
+				$perfil[ FCFDI_Blocks::field_id( str_replace( '_', '-', $campo ) ) ] = $valor;
+			}
+		}
+		if ( ! $perfil ) {
+			return;
+		}
+		$casilla = FCFDI_Blocks::field_id( 'requiere-factura' );
+		wp_register_script( 'fcfdi-perfil-bloques', false, array( 'wp-data' ), FCFDI_VERSION, true );
+		wp_enqueue_script( 'fcfdi-perfil-bloques' );
+		wp_add_inline_script(
+			'fcfdi-perfil-bloques',
+			'(function(perfil,casilla){var aplicado=false;wp.data.subscribe(function(){'
+			. 'var s=wp.data.select("wc/store/checkout");if(!s||!s.getAdditionalFields){return;}'
+			. 'var campos=s.getAdditionalFields()||{};if(!campos[casilla]){aplicado=false;return;}'
+			. 'if(aplicado){return;}aplicado=true;var faltan={};'
+			. 'Object.keys(perfil).forEach(function(k){if(!campos[k]){faltan[k]=perfil[k];}});'
+			. 'if(Object.keys(faltan).length){wp.data.dispatch("wc/store/checkout").setAdditionalFields(Object.assign({},campos,faltan));}'
+			. '});})(' . wp_json_encode( $perfil ) . ',' . wp_json_encode( $casilla ) . ');'
+		);
 	}
 
 	public static function default_bloques( $default, $group = '', $wc_object = null ) {
