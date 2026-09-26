@@ -59,6 +59,8 @@ El plugin conecta tu tienda WooCommerce con el sistema de facturación CFDI medi
   correo de "pedido recibido".
 * La cuenta creada al comprar ya no muestra en Mi cuenta el aviso de "contraseña temporal"
   con un enlace que nunca se envió (el acceso es por enlace al correo).
+* "Acceder con mi correo" se pinta antes del formulario de acceso de WooCommerce, no dentro:
+  anidado, el navegador lo descartaba y no se podía pedir el enlace ni entrar con contraseña.
 
 = 1.15.3 =
 
