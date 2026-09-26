@@ -136,6 +136,9 @@ class FCFDI_Cuenta {
 		if ( is_wp_error( $user_id ) ) {
 			return;
 		}
+		// WooCommerce marca la contraseña generada como temporal y Mi cuenta diría que se envió
+		// un enlace para cambiarla; ese correo se suprime: aquí se entra con enlace de acceso.
+		delete_user_option( $user_id, 'default_password_nag', true );
 
 		$order->set_customer_id( $user_id );
 		// Marca para avisar en "pedido recibido" que se creó la cuenta (solo cuentas nuevas).

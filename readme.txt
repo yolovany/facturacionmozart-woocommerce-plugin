@@ -57,6 +57,8 @@ El plugin conecta tu tienda WooCommerce con el sistema de facturación CFDI medi
   todos los errores fiscales; los datos se validan al realizar el pedido, antes de cobrar.
 * Al liberar un pedido retenido tras timbrar, el cliente ya no recibe por segunda vez el
   correo de "pedido recibido".
+* La cuenta creada al comprar ya no muestra en Mi cuenta el aviso de "contraseña temporal"
+  con un enlace que nunca se envió (el acceso es por enlace al correo).
 
 = 1.15.3 =
 
