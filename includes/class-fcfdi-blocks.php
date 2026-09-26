@@ -32,7 +32,10 @@ class FCFDI_Blocks {
 	 * @return \WP_Error
 	 */
 	public static function validar_order( $errors, $fields, $group ) {
-		if ( empty( $fields[ self::field_id( 'requiere-factura' ) ] ) ) {
+		// El checkout de bloques guarda el borrador (PUT) con cada cambio: validar ahí mostraba
+		// todos los errores fiscales en cuanto el cliente marcaba la casilla, antes de escribir.
+		// Se valida al realizar el pedido (POST), antes de crear el pedido y cobrar.
+		if ( empty( $fields[ self::field_id( 'requiere-factura' ) ] ) || self::es_guardado_parcial() ) {
 			return $errors;
 		}
 
@@ -79,6 +82,18 @@ class FCFDI_Blocks {
 		}
 
 		return $errors;
+	}
+
+	/**
+	 * ¿La petición actual es un guardado parcial del checkout (PUT/PATCH)? apiFetch los manda
+	 * como POST con X-HTTP-Method-Override, igual que los interpreta la API REST de WordPress.
+	 *
+	 * @return bool
+	 */
+	private static function es_guardado_parcial() {
+		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- solo se lee el método.
+		$metodo = $_SERVER['HTTP_X_HTTP_METHOD_OVERRIDE'] ?? ( $_GET['_method'] ?? ( $_SERVER['REQUEST_METHOD'] ?? '' ) );
+		return in_array( strtoupper( sanitize_text_field( wp_unslash( $metodo ) ) ), array( 'PUT', 'PATCH' ), true );
 	}
 
 	/**

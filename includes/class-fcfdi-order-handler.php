@@ -183,7 +183,15 @@ class FCFDI_Order_Handler {
 		$order->update_meta_data( '_fcfdi_estatus_previo', '' );
 		$order->save();
 		if ( $order->has_status( 'on-hold' ) ) {
+			// El cliente ya recibió el correo de ese estado al pagar; al volver a él tras
+			// timbrar, WooCommerce lo mandaría otra vez.
+			$filtro      = 'woocommerce_email_enabled_customer_' . $previo . '_order';
+			$sin_repetir = function ( $activo, $pedido ) use ( $order ) {
+				return $pedido instanceof WC_Order && $pedido->get_id() === $order->get_id() ? false : $activo;
+			};
+			add_filter( $filtro, $sin_repetir, 10, 2 );
 			$order->update_status( $previo, __( 'CFDI timbrado: se libera el pedido.', 'facturacionmozart-woocommerce-plugin' ) );
+			remove_filter( $filtro, $sin_repetir, 10 );
 		}
 	}
 

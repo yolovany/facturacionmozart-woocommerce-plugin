@@ -53,6 +53,10 @@ El plugin conecta tu tienda WooCommerce con el sistema de facturación CFDI medi
 * Con precios con IVA incluido, la base de cada concepto se calcula desde el precio que pagó
   el cliente y se manda con 6 decimales: el IVA cumple la validación del SAT (base × tasa) y el
   total del CFDI coincide exactamente con lo cobrado.
+* Checkout de bloques: al marcar "Requiero factura" ya no aparece de inmediato el aviso con
+  todos los errores fiscales; los datos se validan al realizar el pedido, antes de cobrar.
+* Al liberar un pedido retenido tras timbrar, el cliente ya no recibe por segunda vez el
+  correo de "pedido recibido".
 
 = 1.15.3 =
 
