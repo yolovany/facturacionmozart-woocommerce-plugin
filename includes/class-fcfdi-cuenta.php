@@ -165,7 +165,7 @@ class FCFDI_Cuenta {
 		$customer = new WC_Customer( $user_id );
 
 		$campos_billing  = array( 'first_name', 'last_name', 'company', 'address_1', 'address_2', 'city', 'state', 'postcode', 'country', 'phone', 'email' );
-		$campos_shipping = array( 'first_name', 'last_name', 'company', 'address_1', 'address_2', 'city', 'state', 'postcode', 'country' );
+		$campos_shipping = array( 'first_name', 'last_name', 'company', 'address_1', 'address_2', 'city', 'state', 'postcode', 'country', 'phone' );
 
 		foreach ( $campos_billing as $f ) {
 			$get = "get_billing_{$f}";

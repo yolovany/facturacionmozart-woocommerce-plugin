@@ -66,6 +66,9 @@ El plugin conecta tu tienda WooCommerce con el sistema de facturación CFDI medi
   confirmación.
 * Mis facturas lista los pedidos pagados que aún no tienen factura, con su botón "Solicitar
   factura".
+* Mercado Pago "Efectivo" pagado por STP (transferencia a CLABE) sale con forma de pago 03,
+  no 01.
+* La cuenta creada al comprar guarda también el teléfono de envío para la siguiente compra.
 
 = 1.15.3 =
 

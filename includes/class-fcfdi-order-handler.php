@@ -569,6 +569,11 @@ class FCFDI_Order_Handler {
 	private static function forma_pago_sat( $order ) {
 		$metodo = $order->get_payment_method();
 
+		// "Efectivo" de Mercado Pago incluye STP (transferencia a CLABE, [Payment Type
+		// bank_transfer]): eso es transferencia (03), no efectivo.
+		if ( 'woo-mercado-pago-ticket' === $metodo && self::meta_de_pago_dice( $order, '/bank_transfer|clabe/i' ) ) {
+			return '03';
+		}
 		if ( in_array( $metodo, array( 'cod', 'woo-mercado-pago-ticket', 'stripe_oxxo' ), true ) ) {
 			return '01';
 		}
@@ -576,16 +581,28 @@ class FCFDI_Order_Handler {
 			return '03';
 		}
 		if ( in_array( $metodo, array( 'stripe', 'stripe_cc', 'woo-mercado-pago-custom', 'woocommerce_payments' ), true ) ) {
-			foreach ( $order->get_meta_data() as $meta ) {
-				// Stripe: "...funding" = debit. Mercado Pago: "Mercado Pago - Payment <id>" con
-				// "[Payment Type debit_card]" en el valor.
-				if ( preg_match( '/funding|payment/i', $meta->key ) && is_string( $meta->value ) && false !== stripos( $meta->value, 'debit' ) ) {
-					return '28';
-				}
-			}
-			return '04';
+			// Stripe: "...funding" = debit. Mercado Pago: "Mercado Pago - Payment <id>" con
+			// "[Payment Type debit_card]" en el valor.
+			return self::meta_de_pago_dice( $order, '/debit/i' ) ? '28' : '04';
 		}
 		return '99';
+	}
+
+	/**
+	 * ¿Algún dato del pago que guarda la pasarela (claves con "funding" o "payment")
+	 * coincide con el patrón?
+	 *
+	 * @param WC_Order $order  Pedido.
+	 * @param string   $patron Expresión regular sobre el valor.
+	 * @return bool
+	 */
+	private static function meta_de_pago_dice( $order, $patron ) {
+		foreach ( $order->get_meta_data() as $meta ) {
+			if ( preg_match( '/funding|payment/i', $meta->key ) && is_string( $meta->value ) && preg_match( $patron, $meta->value ) ) {
+				return true;
+			}
+		}
+		return false;
 	}
 
 	/**

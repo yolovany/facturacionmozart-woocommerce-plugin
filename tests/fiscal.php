@@ -28,6 +28,8 @@ foreach ( array(
 	array( 'stripe', '_stripe_card_funding', 'debit', '28' ),
 	array( 'stripe', '', '', '04' ),
 	array( 'woo-mercado-pago-ticket', '', '', '01' ),
+	array( 'woo-mercado-pago-ticket', 'Mercado Pago - Payment 3', '[Payment Type ticket]/[Payment Method oxxo]', '01' ),
+	array( 'woo-mercado-pago-ticket', 'Mercado Pago - Payment 4', '[Payment Type bank_transfer]/[Payment Method clabe]', '03' ),
 	array( 'bacs', '', '', '03' ),
 	array( 'otra', '', '', '99' ),
 ) as list( $pasarela, $clave, $valor, $esperado ) ) {
