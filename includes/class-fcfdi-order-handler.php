@@ -569,7 +569,9 @@ class FCFDI_Order_Handler {
 		}
 		if ( in_array( $metodo, array( 'stripe', 'stripe_cc', 'woo-mercado-pago-custom', 'woocommerce_payments' ), true ) ) {
 			foreach ( $order->get_meta_data() as $meta ) {
-				if ( preg_match( '/funding|payment_type/i', $meta->key ) && is_string( $meta->value ) && false !== stripos( $meta->value, 'debit' ) ) {
+				// Stripe: "...funding" = debit. Mercado Pago: "Mercado Pago - Payment <id>" con
+				// "[Payment Type debit_card]" en el valor.
+				if ( preg_match( '/funding|payment/i', $meta->key ) && is_string( $meta->value ) && false !== stripos( $meta->value, 'debit' ) ) {
 					return '28';
 				}
 			}
