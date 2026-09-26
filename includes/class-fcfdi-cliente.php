@@ -43,6 +43,10 @@ class FCFDI_Cliente {
 			$slug = str_replace( '_', '-', $campo );
 			add_filter( 'woocommerce_get_default_value_for_facturacion-cfdi/' . $slug, array( __CLASS__, 'default_bloques' ), 10, 3 );
 		}
+		// Con los datos fiscales ocultos hasta marcar la casilla (1.15.2), WooCommerce no
+		// aplica los valores por defecto de campos ocultos: quien ya tiene perfil fiscal
+		// encuentra la casilla marcada y sus datos llenos. Si no quiere factura, la desmarca.
+		add_filter( 'woocommerce_get_default_value_for_facturacion-cfdi/requiere-factura', array( __CLASS__, 'default_requiere_factura' ) );
 
 		// C4: formulario "solicitar factura después de comprar" + su envío.
 		add_action( 'woocommerce_order_details_after_order_table', array( __CLASS__, 'form_solicitar' ), 20 );
@@ -347,6 +351,11 @@ class FCFDI_Cliente {
 	 * @param mixed  $wc_object Cliente/pedido en contexto.
 	 * @return mixed
 	 */
+	public static function default_requiere_factura( $default ) {
+		$user_id = get_current_user_id();
+		return $user_id && '' !== (string) get_user_meta( $user_id, 'fcfdi_perfil_rfc', true ) ? true : $default;
+	}
+
 	public static function default_bloques( $default, $group = '', $wc_object = null ) {
 		$user_id = get_current_user_id();
 		if ( ! $user_id ) {
