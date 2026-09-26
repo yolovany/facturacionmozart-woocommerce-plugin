@@ -104,6 +104,7 @@ class FCFDI_Cliente {
 		}
 
 		self::render_perfil_fiscal( $user_id );
+		self::render_sin_factura( $user_id );
 
 		$pedidos = wc_get_orders(
 			array(
@@ -152,6 +153,42 @@ class FCFDI_Cliente {
 			echo '<td><code>' . esc_html( $uuid ) . '</code></td>';
 			echo '<td>' . esc_html( $etiqueta ) . '</td>';
 			echo '<td><a href="' . esc_url( $pdf ) . '">PDF</a> · <a href="' . esc_url( $xml ) . '">XML</a></td>';
+			echo '</tr>';
+		}
+		echo '</tbody></table>';
+	}
+
+	/**
+	 * Pedidos pagados que aún pueden facturarse, con el enlace a su formulario. Sin esta
+	 * lista, quien llegaba a Mis facturas a pedir la factura de una compra no veía cómo:
+	 * el formulario solo está en el detalle del pedido.
+	 *
+	 * @param int $user_id Id de usuario.
+	 */
+	private static function render_sin_factura( $user_id ) {
+		$pendientes = array_filter(
+			wc_get_orders(
+				array(
+					'customer_id' => $user_id,
+					'limit'       => 20, // ponytail: los 20 más recientes; los más viejos, desde Pedidos.
+					'orderby'     => 'date',
+					'order'       => 'DESC',
+					'status'      => wc_get_is_paid_statuses(),
+				)
+			),
+			array( __CLASS__, 'puede_solicitar' )
+		);
+		if ( ! $pendientes ) {
+			return;
+		}
+		echo '<h2>' . esc_html__( 'Pedidos sin factura', 'facturacionmozart-woocommerce-plugin' ) . '</h2>';
+		echo '<table class="woocommerce-orders-table shop_table shop_table_responsive"><tbody>';
+		foreach ( $pendientes as $o ) {
+			echo '<tr>';
+			echo '<td>#' . esc_html( $o->get_order_number() ) . '</td>';
+			echo '<td>' . esc_html( $o->get_date_created() ? wc_format_datetime( $o->get_date_created() ) : '' ) . '</td>';
+			echo '<td>' . wp_kses_post( $o->get_formatted_order_total() ) . '</td>';
+			echo '<td><a class="button" href="' . esc_url( $o->get_view_order_url() . '#fcfdi-solicitar' ) . '">' . esc_html__( 'Solicitar factura', 'facturacionmozart-woocommerce-plugin' ) . '</a></td>';
 			echo '</tr>';
 		}
 		echo '</tbody></table>';
@@ -459,7 +496,7 @@ class FCFDI_Cliente {
 			return (string) $v;
 		};
 
-		echo '<section class="fcfdi-solicitar"><h2>' . esc_html( $titulo ) . '</h2>';
+		echo '<section id="fcfdi-solicitar" class="fcfdi-solicitar"><h2>' . esc_html( $titulo ) . '</h2>';
 		if ( $es_correccion ) {
 			if ( $accion_cliente ) {
 				echo '<div class="woocommerce-error" role="alert">' . esc_html( FCFDI_Order_Handler::mensaje_error_cliente( $order ) ) . '</div>';
@@ -505,7 +542,7 @@ class FCFDI_Cliente {
 		// Impide re-timbrar (y duplicar el CFDI) si el endpoint se invoca directo sobre un
 		// pedido ya timbrado o con timbrado en proceso.
 		if ( ! self::puede_solicitar( $order ) ) {
-			wc_add_notice( __( 'Este pedido ya tiene una factura o está en proceso.', 'facturacionmozart-woocommerce-plugin' ), 'error' );
+			self::avisar( __( 'Este pedido ya tiene una factura o está en proceso.', 'facturacionmozart-woocommerce-plugin' ), 'error' );
 			wp_safe_redirect( $order->get_view_order_url() );
 			exit;
 		}
@@ -516,7 +553,7 @@ class FCFDI_Cliente {
 			&& class_exists( 'FCFDI_Order_Handler' )
 			&& ! FCFDI_Order_Handler::requiere_accion_cliente( $order )
 			&& 'si' !== $order->get_meta( '_fcfdi_correccion_solicitada' ) ) {
-			wc_add_notice( FCFDI_Order_Handler::mensaje_error_cliente( $order ), 'notice' );
+			self::avisar( FCFDI_Order_Handler::mensaje_error_cliente( $order ), 'notice' );
 			wp_safe_redirect( $order->get_view_order_url() );
 			exit;
 		}
@@ -568,7 +605,7 @@ class FCFDI_Cliente {
 
 		if ( ! empty( $errores ) ) {
 			foreach ( $errores as $e ) {
-				wc_add_notice( $e, 'error' );
+				self::avisar( $e, 'error' );
 			}
 			wp_safe_redirect( $order->get_view_order_url() );
 			exit;
@@ -595,8 +632,26 @@ class FCFDI_Cliente {
 		}
 
 		$order->add_order_note( __( 'El cliente solicitó/corrigió su factura desde Mi Cuenta.', 'facturacionmozart-woocommerce-plugin' ) );
-		wc_add_notice( __( 'Recibimos tu solicitud. Tu factura se generará automáticamente y te llegará por correo en cuanto esté lista.', 'facturacionmozart-woocommerce-plugin' ), 'success' );
+		self::avisar( __( 'Recibimos tu solicitud. Tu factura se generará automáticamente y te llegará por correo en cuanto esté lista.', 'facturacionmozart-woocommerce-plugin' ), 'success' );
 		wp_safe_redirect( $order->get_view_order_url() );
 		exit;
+	}
+
+	/**
+	 * Aviso para la siguiente página del cliente. procesar_solicitud() corre en
+	 * admin-post.php (contexto admin), donde WooCommerce no carga sus avisos ni la sesión:
+	 * wc_add_notice() ahí era un error fatal y el cliente veía "error crítico".
+	 *
+	 * @param string $texto Mensaje.
+	 * @param string $tipo  success|error|notice.
+	 */
+	private static function avisar( $texto, $tipo ) {
+		if ( ! function_exists( 'wc_add_notice' ) ) {
+			include_once WC_ABSPATH . 'includes/wc-notice-functions.php';
+		}
+		if ( null === WC()->session ) {
+			WC()->initialize_session();
+		}
+		wc_add_notice( $texto, $tipo );
 	}
 }

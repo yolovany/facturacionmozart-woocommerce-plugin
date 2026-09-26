@@ -61,6 +61,11 @@ El plugin conecta tu tienda WooCommerce con el sistema de facturación CFDI medi
   con un enlace que nunca se envió (el acceso es por enlace al correo).
 * "Acceder con mi correo" se pinta antes del formulario de acceso de WooCommerce, no dentro:
   anidado, el navegador lo descartaba y no se podía pedir el enlace ni entrar con contraseña.
+* Pedir factura después de comprar: al enviar el formulario el cliente veía "error crítico"
+  (los avisos de WooCommerce no existen en admin-post.php). Ahora vuelve a su pedido con la
+  confirmación.
+* Mis facturas lista los pedidos pagados que aún no tienen factura, con su botón "Solicitar
+  factura".
 
 = 1.15.3 =
 
