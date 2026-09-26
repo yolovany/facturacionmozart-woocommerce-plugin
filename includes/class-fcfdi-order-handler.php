@@ -579,6 +579,28 @@ class FCFDI_Order_Handler {
 	}
 
 	/**
+	 * Base (sin IVA) de una línea para el CFDI.
+	 *
+	 * Con precios con IVA incluido, WooCommerce guarda la base y el IVA redondeados a
+	 * centavos, y el CFDI (IVA = base × tasa, a 6 decimales) terminaría un centavo arriba o
+	 * abajo de lo cobrado. La base se recalcula desde lo que pagó el cliente para que el total
+	 * del CFDI sea exactamente ese monto.
+	 *
+	 * @param float $neto Importe sin IVA según WooCommerce.
+	 * @param float $iva  IVA de la línea según WooCommerce.
+	 * @param float $tasa Tasa aplicada (0.16, 0.0…).
+	 * @return float
+	 */
+	private static function base_cfdi( $neto, $iva, $tasa ) {
+		if ( $tasa > 0 && wc_prices_include_tax() ) {
+			// El precio con IVA que vio el cliente, a centavos: WooCommerce puede guardar la
+			// base redondeada y el IVA sin redondear (pasa con el envío).
+			return round( round( (float) $neto + (float) $iva, 2 ) / ( 1 + $tasa ), 6 );
+		}
+		return round( (float) $neto, 6 );
+	}
+
+	/**
 	 * Construye el payload del contrato a partir del pedido.
 	 *
 	 * @param WC_Order $order Pedido.
@@ -611,11 +633,13 @@ class FCFDI_Order_Handler {
 
 		foreach ( $order->get_items() as $item ) {
 			$qty       = (float) $item->get_quantity();
-			$linea_sub = (float) $item->get_subtotal();      // ex IVA, antes de descuento.
-			$linea_tot = (float) $item->get_total();         // ex IVA, después de descuento.
 			$linea_tax = (float) $item->get_total_tax();
-			$desc_item = round( $linea_sub - $linea_tot, 2 );
 			$impuesto  = self::impuesto_cfdi( $item->get_taxes(), $linea_tax );
+			$tasa      = $impuesto ? $impuesto['tasa'] : 0.0;
+			// Ex IVA, antes y después de descuento.
+			$linea_sub = self::base_cfdi( $item->get_subtotal(), $item->get_subtotal_tax(), $tasa );
+			$linea_tot = self::base_cfdi( $item->get_total(), $linea_tax, $tasa );
+			$desc_item = round( $linea_sub - $linea_tot, 6 );
 
 			$product = $item->get_product();
 			$clave   = $product ? $product->get_meta( '_fcfdi_clave_prod_serv' ) : '';
@@ -625,8 +649,8 @@ class FCFDI_Order_Handler {
 				'sku'             => $product ? $product->get_sku() : '',
 				'descripcion'     => $item->get_name(),
 				'cantidad'        => $qty,
-				'valor_unitario'  => $qty > 0 ? round( $linea_sub / $qty, 6 ) : round( $linea_sub, 2 ),
-				'importe'         => round( $linea_sub, 2 ),
+				'valor_unitario'  => $qty > 0 ? round( $linea_sub / $qty, 6 ) : round( $linea_sub, 6 ),
+				'importe'         => round( $linea_sub, 6 ),
 				'descuento'       => $desc_item,
 				'objeto_impuesto' => $impuesto ? '02' : '01',
 			);
@@ -641,9 +665,11 @@ class FCFDI_Order_Handler {
 			}
 
 			$conceptos[] = $concepto;
-			$subtotal   += round( $linea_sub, 2 );
+			$subtotal   += $linea_sub;
 			$descuento  += $desc_item;
-			$impuestos  += round( $linea_tax, 2 );
+			// Base × tasa, igual que el CFDI (el importe redondeado de WooCommerce no cuadra
+			// con el SAT cuando los precios incluyen IVA).
+			$impuestos  += $impuesto ? $linea_tot * $impuesto['tasa'] : 0;
 		}
 
 		// Envío como concepto (si el pedido tiene costo de envío).
@@ -655,12 +681,13 @@ class FCFDI_Order_Handler {
 				$tasas_envio['total'] += (array) ( $linea_envio->get_taxes()['total'] ?? array() );
 			}
 			$impuesto_envio = self::impuesto_cfdi( $tasas_envio, $envio_tax );
+			$envio          = self::base_cfdi( $envio, $envio_tax, $impuesto_envio ? $impuesto_envio['tasa'] : 0.0 );
 			$concepto_envio = array(
 				'sku'             => 'ENVIO',
 				'descripcion'     => __( 'Servicio de envío', 'facturacionmozart-woocommerce-plugin' ),
 				'cantidad'        => 1,
-				'valor_unitario'  => round( $envio, 2 ),
-				'importe'         => round( $envio, 2 ),
+				'valor_unitario'  => round( $envio, 6 ),
+				'importe'         => round( $envio, 6 ),
 				'descuento'       => 0,
 				'objeto_impuesto' => $impuesto_envio ? '02' : '01',
 				'clave_prod_serv' => apply_filters( 'fcfdi_clave_prod_serv_envio', '78102200', $order ),
@@ -670,8 +697,8 @@ class FCFDI_Order_Handler {
 				$concepto_envio['impuestos'] = array( $impuesto_envio );
 			}
 			$conceptos[] = $concepto_envio;
-			$subtotal   += round( $envio, 2 );
-			$impuestos  += round( $envio_tax, 2 );
+			$subtotal   += $envio;
+			$impuestos  += $impuesto_envio ? $envio * $impuesto_envio['tasa'] : 0;
 		}
 
 		$subtotal  = round( $subtotal, 2 );
