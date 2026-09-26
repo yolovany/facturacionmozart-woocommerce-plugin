@@ -59,10 +59,12 @@ class FCFDI_Cuenta {
 		add_action( 'template_redirect', array( __CLASS__, 'consumir_enlace' ) );
 		add_action( 'admin_post_nopriv_' . self::REQ_ACTION, array( __CLASS__, 'procesar_solicitud_acceso' ) );
 		add_action( 'admin_post_' . self::REQ_ACTION, array( __CLASS__, 'procesar_solicitud_acceso' ) );
-		// Formulario "envíame un enlace de acceso" sobre el login de Mi Cuenta.
-		add_action( 'woocommerce_login_form_start', array( __CLASS__, 'form_acceso' ) );
 		// Aviso "te enviamos un enlace" tras solicitarlo (se pinta en Mi Cuenta, no en admin-post).
 		add_action( 'woocommerce_before_customer_login_form', array( __CLASS__, 'aviso_enlace_solicitado' ) );
+		// Formulario "envíame un enlace de acceso" sobre el login de Mi Cuenta. Antes de los
+		// formularios de WooCommerce, no dentro (woocommerce_login_form_start corre dentro del
+		// <form> de acceso: el navegador descartaba el anidado y ninguno de los dos funcionaba).
+		add_action( 'woocommerce_before_customer_login_form', array( __CLASS__, 'form_acceso' ), 20 );
 
 		// 3) Aviso en "pedido recibido" cuando se creó la cuenta en silencio.
 		add_action( 'woocommerce_thankyou', array( __CLASS__, 'aviso_cuenta_creada' ) );
