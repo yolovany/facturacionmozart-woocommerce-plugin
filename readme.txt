@@ -69,6 +69,12 @@ El plugin conecta tu tienda WooCommerce con el sistema de facturación CFDI medi
 * Mercado Pago "Efectivo" pagado por STP (transferencia a CLABE) sale con forma de pago 03,
   no 01.
 * La cuenta creada al comprar guarda también el teléfono de envío para la siguiente compra.
+* Factura a nombre del cliente de un pedido ya facturado a público en general: desde Mis
+  facturas o el pedido ("Factura a mi nombre"), dentro del periodo de facturación del comercio.
+  El puente emite la nueva relacionada con la anterior y cancela la anterior (motivo 01);
+  requiere un puente con POST /facturas/{id}/sustituir. Mis facturas muestra primero los
+  pedidos por facturar y las facturas, y al final el perfil fiscal; las facturas a público en
+  general se marcan como tales.
 
 = 1.15.3 =
 

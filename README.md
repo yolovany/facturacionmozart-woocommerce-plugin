@@ -266,6 +266,10 @@ atrapar errores corregibles por el cliente sin perder la venta.
 { "estatus":"error", "codigo":"…", "mensaje":"…", "reintentable":bool }
 ```
 
+Campo **opcional** en una factura timbrada a público en general: `sustituible_hasta`
+(`yyyy-MM-dd`), el último día en que el cliente puede pedirla a su nombre (ver `/sustituir`).
+Si no viene, el plugin muestra la opción y deja que el backend decida.
+
 ### `GET /facturas/{facturaId}/xml` y `/pdf` — descarga
 
 Devuelven el XML timbrado (`application/xml`) o el PDF (`application/pdf`) como adjunto.
@@ -277,6 +281,26 @@ navegador). Requieren el Bearer token.
 **Request:** `{ "motivo":"02", "folio_sustitucion":"" }`. Motivo `01` exige
 `folio_sustitucion` (UUID sustituto). **Response:** `200 { estatus:"cancelada", … }`;
 idempotente si ya estaba cancelada; `409` si no es cancelable.
+
+### `POST /facturas/{facturaId}/sustituir` — factura a nombre del cliente
+
+Para un pedido que ya se timbró a **público en general**: el cliente pide la factura a su
+nombre desde "Mi cuenta". **Request:** `{ "receptor": { rfc, razon_social, regimen_fiscal, cp,
+uso_cfdi, email } }`.
+
+El backend encola de nuevo el mismo pedido con el receptor nuevo, timbra un CFDI relacionado
+con el anterior (`CfdiRelacionados` tipo `04`, sustitución) y después cancela el anterior ante
+el SAT con motivo `01` y el UUID nuevo como folio de sustitución. **El `factura_id` no cambia**:
+la tienda sigue consultando y descargando con el mismo identificador y recibe el CFDI nuevo.
+El anterior no se borra; queda cancelado en el backend.
+
+**Response:** `202 { factura_id, order_id, estatus:"en_proceso" }` (idempotente mientras está en
+curso). `409 NO_SUSTITUIBLE` si la factura no está timbrada a público en general;
+`409 PLAZO_VENCIDO` si pasó el periodo de facturación del comercio (mes o año en curso de la
+fecha del pedido, el mismo que usa para sus tickets); `400` con los códigos del receptor.
+
+Es una ruta **añadida** al contrato: `POST /facturas` conserva su regla de un CFDI por pedido
+(`sustituye_uuid` no se acepta ahí), y un plugin que no conozca esta ruta funciona igual.
 
 ### `GET /health` — salud del puente
 

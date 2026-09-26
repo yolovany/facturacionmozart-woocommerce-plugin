@@ -131,6 +131,32 @@ class FCFDI_Api_Client {
 	}
 
 	/**
+	 * Pide a nombre del cliente la factura de un pedido timbrado a público en general. El
+	 * puente timbra la nueva relacionada con la anterior y cancela la anterior (motivo 01);
+	 * el factura_id no cambia.
+	 *
+	 * @param string $factura_id Factura a público en general.
+	 * @param array  $receptor   rfc, razon_social, regimen_fiscal, cp, uso_cfdi, email.
+	 * @return array|WP_Error
+	 */
+	public function sustituir( $factura_id, array $receptor ) {
+		$res = wp_remote_post(
+			$this->base_url . '/' . rawurlencode( $factura_id ) . '/sustituir',
+			array(
+				'timeout' => 30,
+				'headers' => array(
+					'Authorization'          => 'Bearer ' . $this->token,
+					'X-FCFDI-Plugin-Version' => FCFDI_VERSION,
+					'Content-Type'           => 'application/json',
+					'Accept'                 => 'application/json',
+				),
+				'body'    => wp_json_encode( array( 'receptor' => $receptor ) ),
+			)
+		);
+		return $this->normalizar( $res );
+	}
+
+	/**
 	 * Pre-flight: valida los datos fiscales del receptor ANTES de cobrar (dry-run, no timbra).
 	 *
 	 * @param array $receptor rfc, razon_social, regimen_fiscal, cp, uso_cfdi.

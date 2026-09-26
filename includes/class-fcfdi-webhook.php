@@ -87,6 +87,9 @@ class FCFDI_Webhook {
 			$order->add_order_note(
 				sprintf( __( 'CFDI timbrado (webhook). UUID: %s', 'facturacionmozart-woocommerce-plugin' ), $request->get_param( 'uuid' ) )
 			);
+			if ( class_exists( 'FCFDI_Order_Handler' ) ) {
+				FCFDI_Order_Handler::tras_timbrar( $order );
+			}
 			// Mismo cierre de ciclo que el polling: el poll programado ya sobra, el pedido
 			// retenido se libera y, si el pedido se canceló con el timbrado en vuelo, el
 			// CFDI recién timbrado se cancela ante el SAT.

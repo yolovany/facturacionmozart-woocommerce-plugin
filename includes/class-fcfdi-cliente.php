@@ -103,7 +103,8 @@ class FCFDI_Cliente {
 			return;
 		}
 
-		self::render_perfil_fiscal( $user_id );
+		// Primero lo que el cliente viene a buscar (pedidos por facturar y sus facturas); el
+		// perfil fiscal, al final. render_perfil_fiscal() también guarda el formulario.
 		self::render_sin_factura( $user_id );
 
 		$pedidos = wc_get_orders(
@@ -128,6 +129,7 @@ class FCFDI_Cliente {
 
 		if ( empty( $con_cfdi ) ) {
 			echo '<p>' . esc_html__( 'Aún no tienes facturas timbradas. Cuando generemos un CFDI de tus pedidos aparecerá aquí.', 'facturacionmozart-woocommerce-plugin' ) . '</p>';
+			self::render_perfil_fiscal( $user_id );
 			return;
 		}
 
@@ -144,6 +146,9 @@ class FCFDI_Cliente {
 			$estatus   = $o->get_meta( '_fcfdi_estatus' );
 			$uuid      = $o->get_meta( '_fcfdi_uuid' );
 			$etiqueta  = 'cancelada' === $estatus ? __( 'Cancelada', 'facturacionmozart-woocommerce-plugin' ) : __( 'Timbrada', 'facturacionmozart-woocommerce-plugin' );
+			if ( 'timbrada' === $estatus && class_exists( 'FCFDI_Order_Handler' ) && ! FCFDI_Order_Handler::requiere_factura( $o ) ) {
+				$etiqueta = __( 'Timbrada (público en general)', 'facturacionmozart-woocommerce-plugin' );
+			}
 			$fecha     = $o->get_date_created() ? wc_format_datetime( $o->get_date_created() ) : '';
 			$pdf       = FCFDI_My_Account::url_descarga_publica( $o->get_id(), 'pdf' );
 			$xml       = FCFDI_My_Account::url_descarga_publica( $o->get_id(), 'xml' );
@@ -156,6 +161,7 @@ class FCFDI_Cliente {
 			echo '</tr>';
 		}
 		echo '</tbody></table>';
+		self::render_perfil_fiscal( $user_id );
 	}
 
 	/**
@@ -176,19 +182,21 @@ class FCFDI_Cliente {
 					'status'      => wc_get_is_paid_statuses(),
 				)
 			),
-			array( __CLASS__, 'puede_solicitar' )
+			function ( $o ) {
+				return self::puede_solicitar( $o ) || self::puede_sustituir( $o );
+			}
 		);
 		if ( ! $pendientes ) {
 			return;
 		}
-		echo '<h2>' . esc_html__( 'Pedidos sin factura', 'facturacionmozart-woocommerce-plugin' ) . '</h2>';
+		echo '<h2>' . esc_html__( 'Pedidos sin factura a tu nombre', 'facturacionmozart-woocommerce-plugin' ) . '</h2>';
 		echo '<table class="woocommerce-orders-table shop_table shop_table_responsive"><tbody>';
 		foreach ( $pendientes as $o ) {
 			echo '<tr>';
 			echo '<td>#' . esc_html( $o->get_order_number() ) . '</td>';
 			echo '<td>' . esc_html( $o->get_date_created() ? wc_format_datetime( $o->get_date_created() ) : '' ) . '</td>';
 			echo '<td>' . wp_kses_post( $o->get_formatted_order_total() ) . '</td>';
-			echo '<td><a class="button" href="' . esc_url( $o->get_view_order_url() . '#fcfdi-solicitar' ) . '">' . esc_html__( 'Solicitar factura', 'facturacionmozart-woocommerce-plugin' ) . '</a></td>';
+			echo '<td><a class="button" href="' . esc_url( $o->get_view_order_url() . '#fcfdi-solicitar' ) . '">' . esc_html__( 'Factura a mi nombre', 'facturacionmozart-woocommerce-plugin' ) . '</a></td>';
 			echo '</tr>';
 		}
 		echo '</tbody></table>';
@@ -459,11 +467,29 @@ class FCFDI_Cliente {
 		return (bool) $order->is_paid();
 	}
 
+	/**
+	 * ¿Puede el cliente pedir a su nombre la factura de este pedido, ya timbrado a público en
+	 * general? Dentro del plazo que informa el puente (el periodo de facturación de la
+	 * empresa); sin ese dato se permite y el puente decide.
+	 *
+	 * @param WC_Order $order Pedido.
+	 * @return bool
+	 */
+	private static function puede_sustituir( $order ) {
+		if ( 'timbrada' !== $order->get_meta( '_fcfdi_estatus' ) || ! $order->get_meta( '_fcfdi_factura_id' )
+			|| ! class_exists( 'FCFDI_Order_Handler' ) || FCFDI_Order_Handler::requiere_factura( $order ) ) {
+			return false;
+		}
+		$hasta = (string) $order->get_meta( '_fcfdi_sustituible_hasta' );
+		return '' === $hasta || current_time( 'Y-m-d' ) <= $hasta;
+	}
+
 	public static function form_solicitar( $order ) {
 		if ( ! is_user_logged_in() || (int) $order->get_user_id() !== get_current_user_id() ) {
 			return;
 		}
-		if ( ! self::puede_solicitar( $order ) ) {
+		$sustituir = self::puede_sustituir( $order );
+		if ( ! $sustituir && ! self::puede_solicitar( $order ) ) {
 			return;
 		}
 		$estatus = $order->get_meta( '_fcfdi_estatus' );
@@ -485,7 +511,7 @@ class FCFDI_Cliente {
 		$es_correccion = $accion_cliente || 'si' === $order->get_meta( '_fcfdi_correccion_solicitada' );
 		$titulo = $es_correccion
 			? __( 'Actualizar datos y reintentar factura', 'facturacionmozart-woocommerce-plugin' )
-			: __( 'Solicitar factura', 'facturacionmozart-woocommerce-plugin' );
+			: ( $sustituir ? __( 'Factura a tu nombre', 'facturacionmozart-woocommerce-plugin' ) : __( 'Solicitar factura', 'facturacionmozart-woocommerce-plugin' ) );
 
 		$user_id = get_current_user_id();
 		$pref    = function ( $campo, $meta ) use ( $order, $user_id ) {
@@ -502,6 +528,8 @@ class FCFDI_Cliente {
 				echo '<div class="woocommerce-error" role="alert">' . esc_html( FCFDI_Order_Handler::mensaje_error_cliente( $order ) ) . '</div>';
 			}
 			echo '<p>' . esc_html__( 'Actualiza los datos necesarios y envía el formulario. Al guardarlos, la factura se volverá a procesar automáticamente.', 'facturacionmozart-woocommerce-plugin' ) . '</p>';
+		} elseif ( $sustituir ) {
+			echo '<p>' . esc_html__( 'Este pedido se facturó a público en general. Captura tus datos fiscales y emitimos la factura a tu nombre; la de público en general se cancela.', 'facturacionmozart-woocommerce-plugin' ) . '</p>';
 		} else {
 			echo '<p>' . esc_html__( 'Captura tus datos fiscales para generar el CFDI de este pedido.', 'facturacionmozart-woocommerce-plugin' ) . '</p>';
 		}
@@ -516,7 +544,7 @@ class FCFDI_Cliente {
 		self::campo_select( 'fcfdi_uso_cfdi', __( 'Uso de CFDI', 'facturacionmozart-woocommerce-plugin' ), FCFDI_Checkout::usos_cfdi(), $pref( 'uso_cfdi', '_fcfdi_uso_cfdi' ), true );
 		$boton = $es_correccion
 			? __( 'Guardar datos y reintentar factura', 'facturacionmozart-woocommerce-plugin' )
-			: __( 'Solicitar factura', 'facturacionmozart-woocommerce-plugin' );
+			: ( $sustituir ? __( 'Emitir factura a mi nombre', 'facturacionmozart-woocommerce-plugin' ) : __( 'Solicitar factura', 'facturacionmozart-woocommerce-plugin' ) );
 		echo '<p><button type="submit" class="button woocommerce-Button">' . esc_html( $boton ) . '</button></p>';
 		echo '</form></section>';
 	}
@@ -541,7 +569,8 @@ class FCFDI_Cliente {
 		// El pedido debe seguir siendo elegible: pagado y sin CFDI vigente ni en curso.
 		// Impide re-timbrar (y duplicar el CFDI) si el endpoint se invoca directo sobre un
 		// pedido ya timbrado o con timbrado en proceso.
-		if ( ! self::puede_solicitar( $order ) ) {
+		$sustituir = self::puede_sustituir( $order );
+		if ( ! $sustituir && ! self::puede_solicitar( $order ) ) {
 			self::avisar( __( 'Este pedido ya tiene una factura o está en proceso.', 'facturacionmozart-woocommerce-plugin' ), 'error' );
 			wp_safe_redirect( $order->get_view_order_url() );
 			exit;
@@ -611,6 +640,27 @@ class FCFDI_Cliente {
 			exit;
 		}
 
+		if ( $sustituir ) {
+			$error = self::sustituir(
+				$order,
+				array(
+					'rfc'            => $rfc,
+					'razon_social'   => $razon,
+					'regimen_fiscal' => $regimen,
+					'cp'             => $cp,
+					'uso_cfdi'       => $uso,
+				)
+			);
+			if ( true === $error ) {
+				self::guardar_perfil_desde_post( get_current_user_id() );
+				self::avisar( __( 'Recibimos tu solicitud. Tu factura a tu nombre se generará y te llegará por correo; la de público en general se cancela.', 'facturacionmozart-woocommerce-plugin' ), 'success' );
+			} else {
+				self::avisar( $error, 'error' );
+			}
+			wp_safe_redirect( $order->get_view_order_url() );
+			exit;
+		}
+
 		// Guarda el receptor en el pedido y en el perfil del usuario.
 		$order->update_meta_data( '_fcfdi_requiere_factura', 'si' );
 		$order->update_meta_data( '_fcfdi_rfc', $rfc );
@@ -635,6 +685,51 @@ class FCFDI_Cliente {
 		self::avisar( __( 'Recibimos tu solicitud. Tu factura se generará automáticamente y te llegará por correo en cuanto esté lista.', 'facturacionmozart-woocommerce-plugin' ), 'success' );
 		wp_safe_redirect( $order->get_view_order_url() );
 		exit;
+	}
+
+	/**
+	 * Pide al puente la factura a nombre del cliente de un pedido timbrado a público en
+	 * general. El puente timbra la nueva relacionada con la anterior y cancela la anterior
+	 * (motivo 01); el factura_id no cambia, así que el pedido solo vuelve a consultar su
+	 * estatus.
+	 *
+	 * @param WC_Order $order    Pedido ya validado con puede_sustituir().
+	 * @param array    $receptor rfc, razon_social, regimen_fiscal, cp, uso_cfdi.
+	 * @return true|string true si el puente la aceptó; si no, el mensaje para el cliente.
+	 */
+	public static function sustituir( $order, array $receptor ) {
+		$res = ( new FCFDI_Api_Client() )->sustituir(
+			(string) $order->get_meta( '_fcfdi_factura_id' ),
+			$receptor + array( 'email' => $order->get_billing_email() )
+		);
+		$code = is_wp_error( $res ) ? 0 : (int) $res['code'];
+		if ( 202 !== $code && 200 !== $code ) {
+			$body    = is_wp_error( $res ) ? array() : (array) $res['body'];
+			$codigo  = isset( $body['codigo'] ) ? (string) $body['codigo'] : '';
+			return $code >= 500 || 0 === $code
+				? __( 'No pudimos procesar tu solicitud en este momento. Inténtalo de nuevo en unos minutos.', 'facturacionmozart-woocommerce-plugin' )
+				: FCFDI_Checkout::mensaje_error( $codigo, isset( $body['mensaje'] ) ? sanitize_text_field( (string) $body['mensaje'] ) : '' );
+		}
+
+		$order->update_meta_data( '_fcfdi_uuid_sustituido', (string) $order->get_meta( '_fcfdi_uuid' ) );
+		$order->update_meta_data( '_fcfdi_requiere_factura', 'si' );
+		foreach ( $receptor as $campo => $valor ) {
+			$order->update_meta_data( '_fcfdi_' . $campo, $valor );
+		}
+		$order->update_meta_data( '_fcfdi_estatus', 'en_proceso' );
+		$order->update_meta_data( '_fcfdi_poll_intentos', 0 );
+		$order->delete_meta_data( '_fcfdi_sustituible_hasta' );
+		$order->save();
+		FCFDI_Order_Handler::programar_consulta( $order->get_id() );
+
+		$order->add_order_note(
+			sprintf(
+				/* translators: %s: UUID del CFDI a público en general */
+				__( 'El cliente pidió desde Mi cuenta la factura a su nombre; se sustituye el CFDI %s (público en general).', 'facturacionmozart-woocommerce-plugin' ),
+				$order->get_meta( '_fcfdi_uuid_sustituido' )
+			)
+		);
+		return true;
 	}
 
 	/**

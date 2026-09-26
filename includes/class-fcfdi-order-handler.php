@@ -366,6 +366,7 @@ class FCFDI_Order_Handler {
 					isset( $body['uuid'] ) ? $body['uuid'] : ''
 				)
 			);
+			self::tras_timbrar( $order, $body );
 			// El pedido se canceló/reembolsó mientras el puente timbraba: el CFDI recién
 			// timbrado ya no corresponde a una venta y se cancela ante el SAT de inmediato.
 			if ( self::cancelar_pendiente_si_aplica( $order ) ) {
@@ -382,6 +383,56 @@ class FCFDI_Order_Handler {
 
 		// Sigue en proceso: reprogramar el polling.
 		self::reprogramar_o_fallar( $order, __( 'El timbrado sigue en proceso tras varios intentos.', 'facturacionmozart-woocommerce-plugin' ) );
+	}
+
+	/**
+	 * Después de timbrar. Si el CFDI sustituye a uno a público en general, lo anota en el
+	 * pedido. Si es a público en general, guarda hasta cuándo el cliente puede pedirlo a su
+	 * nombre (el puente lo informa en la consulta de estatus, campo opcional
+	 * sustituible_hasta; un puente que no lo envíe deja el botón siempre y él decide).
+	 * Pública: también la invoca el webhook.
+	 *
+	 * @param WC_Order   $order   Pedido ya en 'timbrada'.
+	 * @param array|null $estatus Respuesta de la consulta de estatus, si ya se tiene.
+	 */
+	public static function tras_timbrar( $order, $estatus = null ) {
+		$anterior = (string) $order->get_meta( '_fcfdi_uuid_sustituido' );
+		if ( '' !== $anterior ) {
+			$order->delete_meta_data( '_fcfdi_uuid_sustituido' );
+			$order->add_order_note(
+				sprintf(
+					/* translators: %s: UUID del CFDI a público en general */
+					__( 'Esta factura a nombre del cliente sustituye al CFDI %s (público en general), que el puente cancela ante el SAT con motivo 01.', 'facturacionmozart-woocommerce-plugin' ),
+					$anterior
+				)
+			);
+		}
+		if ( ! self::requiere_factura( $order ) ) {
+			if ( null === $estatus ) {
+				$res     = ( new FCFDI_Api_Client() )->consultar_estatus( $order->get_meta( '_fcfdi_factura_id' ) );
+				$estatus = is_wp_error( $res ) ? array() : (array) $res['body'];
+			}
+			$hasta = isset( $estatus['sustituible_hasta'] ) ? (string) $estatus['sustituible_hasta'] : '';
+			if ( preg_match( '/^\d{4}-\d{2}-\d{2}$/', $hasta ) ) {
+				$order->update_meta_data( '_fcfdi_sustituible_hasta', $hasta );
+			}
+		}
+		$order->save();
+	}
+
+	/**
+	 * Programa la consulta del estatus del CFDI (la usa la solicitud de factura a nombre del
+	 * cliente, que ya tiene factura_id).
+	 *
+	 * @param int $order_id Id del pedido.
+	 */
+	public static function programar_consulta( $order_id ) {
+		as_schedule_single_action(
+			time() + self::backoff( self::BACKOFF_POLL, 0, 'fcfdi_backoff_poll' ),
+			self::HOOK_CONSULTAR,
+			array( 'order_id' => $order_id ),
+			'facturacionmozart-woocommerce-plugin'
+		);
 	}
 
 	/**
@@ -505,7 +556,7 @@ class FCFDI_Order_Handler {
 	 * @param WC_Order $order Pedido.
 	 * @return bool
 	 */
-	private static function requiere_factura( $order ) {
+	public static function requiere_factura( $order ) {
 		if ( 'si' === $order->get_meta( '_fcfdi_requiere_factura' ) ) {
 			return true;
 		}
