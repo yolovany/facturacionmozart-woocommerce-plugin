@@ -25,7 +25,7 @@ para cada pedido, hablando por REST con un backend/puente de facturación propio
 - Descarga de XML/PDF en "Mi cuenta" vía proxy autenticado (el token nunca llega al
   navegador) y adjunto automático por correo.
 - Cancelación de CFDI ante el SAT desde la página del pedido.
-- Portal del cliente: pestaña "Mis Facturas", perfil fiscal reutilizable con autorrelleno
+- Portal del cliente: pestaña "Mis facturas", perfil fiscal reutilizable con autorrelleno
   del checkout, solicitud de factura post-compra.
 - Cuenta sin fricción: al comprar se crea la cuenta del cliente automáticamente (sin
   contraseña) y se guardan sus datos de facturación/envío; el acceso posterior es por

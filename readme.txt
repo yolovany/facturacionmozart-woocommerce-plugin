@@ -48,6 +48,8 @@ El plugin conecta tu tienda WooCommerce con el sistema de facturación CFDI medi
 
 = 1.15.4 =
 
+* Mi cuenta: la pestaña se llama "Mis facturas", con la misma forma que las demás del menú, y el perfil
+  fiscal ya no dice "checkout".
 * Pagos con tarjeta de débito por Stripe: el CFDI sale con forma de pago 28. El plugin de Stripe
   ya no guarda si la tarjeta es de crédito o de débito; se consulta a Stripe al facturar.
 * Checkout de bloques: al marcar "Requiero factura", los datos fiscales vacíos se llenan con el

@@ -1,6 +1,6 @@
 <?php
 /**
- * Portal del cliente (Mi Cuenta): pestaña "Mis Facturas", perfil fiscal guardado con
+ * Portal del cliente (Mi Cuenta): pestaña "Mis facturas", perfil fiscal guardado con
  * autorrelleno del checkout, y solicitud/corrección de factura después de comprar.
  *
  * @package FacturacionCFDI
@@ -25,7 +25,7 @@ class FCFDI_Cliente {
 	);
 
 	public static function init() {
-		// C1: pestaña "Mis Facturas".
+		// C1: pestaña "Mis facturas".
 		add_action( 'init', array( __CLASS__, 'registrar_endpoint' ) );
 		add_filter( 'woocommerce_account_menu_items', array( __CLASS__, 'menu' ) );
 		add_action( 'woocommerce_account_' . self::ENDPOINT . '_endpoint', array( __CLASS__, 'render_mis_facturas' ) );
@@ -73,7 +73,7 @@ class FCFDI_Cliente {
 	}
 
 	/**
-	 * Inserta "Mis Facturas" en el menú de Mi Cuenta, antes de "Cerrar sesión".
+	 * Inserta "Mis facturas" en el menú de Mi Cuenta, antes de "Cerrar sesión".
 	 *
 	 * @param array $items Ítems.
 	 * @return array
@@ -82,12 +82,12 @@ class FCFDI_Cliente {
 		$nuevo = array();
 		foreach ( $items as $key => $label ) {
 			if ( 'customer-logout' === $key ) {
-				$nuevo[ self::ENDPOINT ] = __( 'Mis Facturas', 'facturacionmozart-woocommerce-plugin' );
+				$nuevo[ self::ENDPOINT ] = __( 'Mis facturas', 'facturacionmozart-woocommerce-plugin' );
 			}
 			$nuevo[ $key ] = $label;
 		}
 		if ( ! isset( $nuevo[ self::ENDPOINT ] ) ) {
-			$nuevo[ self::ENDPOINT ] = __( 'Mis Facturas', 'facturacionmozart-woocommerce-plugin' );
+			$nuevo[ self::ENDPOINT ] = __( 'Mis facturas', 'facturacionmozart-woocommerce-plugin' );
 		}
 		return $nuevo;
 	}
@@ -125,7 +125,7 @@ class FCFDI_Cliente {
 			}
 		);
 
-		echo '<h2>' . esc_html__( 'Mis Facturas', 'facturacionmozart-woocommerce-plugin' ) . '</h2>';
+		echo '<h2>' . esc_html__( 'Mis facturas', 'facturacionmozart-woocommerce-plugin' ) . '</h2>';
 
 		if ( empty( $con_cfdi ) ) {
 			echo '<p>' . esc_html__( 'Aún no tienes facturas timbradas. Cuando generemos un CFDI de tus pedidos aparecerá aquí.', 'facturacionmozart-woocommerce-plugin' ) . '</p>';
@@ -222,7 +222,7 @@ class FCFDI_Cliente {
 		};
 
 		echo '<h2>' . esc_html__( 'Perfil fiscal', 'facturacionmozart-woocommerce-plugin' ) . '</h2>';
-		echo '<p>' . esc_html__( 'Guarda tus datos fiscales para autocompletar el checkout la próxima vez.', 'facturacionmozart-woocommerce-plugin' ) . '</p>';
+		echo '<p>' . esc_html__( 'Guarda tus datos fiscales y en tu próxima compra se llenan solos.', 'facturacionmozart-woocommerce-plugin' ) . '</p>';
 		echo '<form method="post" class="woocommerce-EditAccountForm">';
 		wp_nonce_field( 'fcfdi_perfil' );
 		self::campo_texto( 'fcfdi_rfc', __( 'RFC', 'facturacionmozart-woocommerce-plugin' ), $val( 'rfc' ) );

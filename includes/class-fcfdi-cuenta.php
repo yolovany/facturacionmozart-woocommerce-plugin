@@ -8,7 +8,7 @@
  * historial de facturas y la próxima compra se autocompleta.
  *
  * Para volver a entrar no usa contraseña: pide un "enlace de acceso" con su correo y le
- * llega un enlace de un solo uso y con caducidad que lo deja dentro de "Mis Facturas".
+ * llega un enlace de un solo uso y con caducidad que lo deja dentro de "Mis facturas".
  *
  * Notas de seguridad:
  * - Solo se crea/auto-inicia sesión cuando el correo NO pertenece a una cuenta existente.

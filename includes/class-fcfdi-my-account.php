@@ -183,7 +183,7 @@ class FCFDI_My_Account {
 
 	/**
 	 * Igual que url_descarga() pero público, para que otras clases (p.ej. la pestaña
-	 * "Mis Facturas") generen el enlace al mismo proxy autenticado.
+	 * "Mis facturas") generen el enlace al mismo proxy autenticado.
 	 *
 	 * @param int    $order_id Id del pedido.
 	 * @param string $formato  'xml' o 'pdf'.

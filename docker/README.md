@@ -121,7 +121,7 @@ acceso** que llega por **correo** (sin contraseña). Para poder verlo, el demo i
 
 - Abre <http://localhost:8025> para ver los correos (el enlace de acceso, avisos, etc.).
 - Flujo: en **Mi Cuenta**, escribe el correo en "Acceder con mi correo" → abre Mailpit →
-  clic en el enlace → entras a "Mis Facturas".
+  clic en el enlace → entras a "Mis facturas".
 
 > **Producción:** este buzón es solo para el demo. En un sitio real el envío de correo
 > (**SMTP**) debe estar configurado y funcionando: el acceso del cliente depende de que el
