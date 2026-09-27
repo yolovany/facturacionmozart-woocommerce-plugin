@@ -509,6 +509,7 @@ class FCFDI_Order_Handler {
 	 * Si el pedido está retenido esperando CFDI y el timbrado ya no puede completarse
 	 * solo (dato de negocio incorrecto o intentos agotados), permanece en "en espera"
 	 * (nunca se libera solo) y se avisa al administrador para que lo resuelva a mano.
+	 * Si no está retenido (público en general), solo se avisa: el pedido quedó sin CFDI.
 	 *
 	 * Pública: también la invoca el webhook cuando el puente notifica un error.
 	 *
@@ -517,6 +518,20 @@ class FCFDI_Order_Handler {
 	 */
 	public static function escalar_si_retenido( $order, $motivo ) {
 		if ( 'si' !== $order->get_meta( '_fcfdi_retener_completado' ) ) {
+			// Sin retención (factura a público en general): el pedido sigue su curso y puede enviarse,
+			// pero quedó sin CFDI. Sin este aviso nadie se enteraría.
+			wp_mail(
+				get_option( 'admin_email' ),
+				/* translators: 1: nombre del sitio, 2: número de pedido */
+				sprintf( __( '[%1$s] Pedido #%2$s sin factura: falló la facturación CFDI', 'facturacionmozart-woocommerce-plugin' ), get_bloginfo( 'name' ), $order->get_order_number() ),
+				sprintf(
+					/* translators: 1: número de pedido, 2: motivo, 3: URL del pedido */
+					__( "El pedido #%1\$s se pagó, pero su CFDI no se generó. El pedido no se retuvo: puede prepararse y enviarse, pero le falta la factura.\n\nMotivo técnico: %2\$s\n\nQué hacer: corrige la incidencia y, en el pedido, pulsa “Reintentar ahora”.\n\nAbrir pedido: %3\$s", 'facturacionmozart-woocommerce-plugin' ),
+					$order->get_order_number(),
+					$motivo,
+					$order->get_edit_order_url()
+				)
+			);
 			return;
 		}
 		$order->add_order_note(

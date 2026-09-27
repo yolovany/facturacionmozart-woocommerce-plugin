@@ -48,6 +48,8 @@ El plugin conecta tu tienda WooCommerce con el sistema de facturación CFDI medi
 
 = 1.15.4 =
 
+* Si una factura a público en general no se logra timbrar, se avisa por correo al administrador
+  (antes solo se avisaba de los pedidos retenidos, con factura a nombre del cliente).
 * Mi cuenta: la pestaña se llama "Mis facturas", con la misma forma que las demás del menú, y el perfil
   fiscal ya no dice "checkout".
 * Pagos con tarjeta de débito por Stripe: el CFDI sale con forma de pago 28. El plugin de Stripe
