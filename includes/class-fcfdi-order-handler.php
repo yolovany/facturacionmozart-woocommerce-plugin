@@ -634,9 +634,40 @@ class FCFDI_Order_Handler {
 		if ( in_array( $metodo, array( 'stripe', 'stripe_cc', 'woo-mercado-pago-custom', 'woocommerce_payments' ), true ) ) {
 			// Stripe: "...funding" = debit. Mercado Pago: "Mercado Pago - Payment <id>" con
 			// "[Payment Type debit_card]" en el valor.
+			if ( 0 === strpos( $metodo, 'stripe' ) ) {
+				self::completar_funding_stripe( $order );
+			}
 			return self::meta_de_pago_dice( $order, '/debit/i' ) ? '28' : '04';
 		}
 		return '99';
+	}
+
+	/**
+	 * El plugin de Stripe (desde 8.x) ya no guarda en el pedido si la tarjeta es de crédito o de
+	 * débito: se consulta su método de pago una vez y queda en "_fcfdi_stripe_funding", que
+	 * meta_de_pago_dice ya revisa. Si Stripe no responde, se factura como crédito (04), igual que
+	 * antes.
+	 *
+	 * @param WC_Order $order Pedido pagado con Stripe.
+	 */
+	private static function completar_funding_stripe( $order ) {
+		if ( '' !== (string) $order->get_meta( '_fcfdi_stripe_funding' ) || '' !== (string) $order->get_meta( '_stripe_card_funding' )
+			|| ! class_exists( 'WC_Stripe_API' ) ) {
+			return;
+		}
+		$metodo_pago = (string) $order->get_meta( '_stripe_source_id' );
+		if ( 0 !== strpos( $metodo_pago, 'pm_' ) ) {
+			return;
+		}
+		try {
+			$respuesta = WC_Stripe_API::retrieve( 'payment_methods/' . $metodo_pago );
+		} catch ( Exception $e ) {
+			return;
+		}
+		if ( isset( $respuesta->card->funding ) && is_string( $respuesta->card->funding ) ) {
+			$order->update_meta_data( '_fcfdi_stripe_funding', $respuesta->card->funding );
+			$order->save_meta_data();
+		}
 	}
 
 	/**

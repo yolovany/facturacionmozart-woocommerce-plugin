@@ -48,6 +48,8 @@ El plugin conecta tu tienda WooCommerce con el sistema de facturación CFDI medi
 
 = 1.15.4 =
 
+* Pagos con tarjeta de débito por Stripe: el CFDI sale con forma de pago 28. El plugin de Stripe
+  ya no guarda si la tarjeta es de crédito o de débito; se consulta a Stripe al facturar.
 * Checkout de bloques: al marcar "Requiero factura", los datos fiscales vacíos se llenan con el
   perfil guardado del cliente. Corrige que desde 1.15.2 el perfil no se autollenara.
 * Con precios con IVA incluido, la base de cada concepto se calcula desde el precio que pagó
