@@ -21,7 +21,8 @@ para cada pedido, hablando por REST con un backend/puente de facturación propio
   bloquea con mensaje claro, sin vaciar el carrito ni perder la venta.
 - Timbrado asíncrono vía Action Scheduler; la venta nunca se bloquea por el PAC.
 - Retención del pedido hasta tener CFDI si el cliente lo solicitó, con backoff largo y
-  aviso al admin si el PAC está caído.
+  aviso al admin si el PAC está caído. Si un CFDI no se logra generar (también uno a público
+  en general, que no retiene el pedido), el administrador recibe un correo con el motivo.
 - Descarga de XML/PDF en "Mi cuenta" vía proxy autenticado (el token nunca llega al
   navegador) y adjunto automático por correo.
 - Cancelación de CFDI ante el SAT desde la página del pedido.
@@ -65,6 +66,13 @@ Si no tienes un backend propio, puedes explorar el alcance del plugin con la
   cada petición; con una dirección `http` queda expuesto a quien observe la red. El plugin
   avisa en el panel si detecta una URL sin cifrar (se exceptúan destinos locales de
   desarrollo).
+- **Cron real de WordPress cada minuto.** El envío al puente y la consulta del estatus corren
+  con Action Scheduler, que fuera del panel de administración solo arranca con el cron: con
+  cron cada minuto la factura sale en alrededor de un minuto; si depende de visitas, puede
+  tardar horas en una tienda con poco tráfico.
+- **Sin caché en el API de la tienda.** Excluye `/wp-json/wc/store/` del caché de página o de
+  REST (LiteSpeed Cache y similares): el checkout de bloques lee el carrito de ahí, y un
+  carrito cacheado se sirve a otros visitantes.
 
 Probado con WordPress 7.0, WooCommerce 10.9 y PHP 8.2, incluido el almacenamiento de
 pedidos de alto rendimiento (HPOS) activado.

@@ -71,9 +71,10 @@ Antes de habilitar la operación normal, realiza un pedido de prueba con datos f
 ## 6. Verificación operativa
 
 - En **WooCommerce → Estado → Acciones programadas**, revisa que las acciones del grupo `facturacionmozart-woocommerce-plugin` se ejecuten. El plugin usa Action Scheduler para no bloquear la compra mientras se timbra.
-- Configura el cron real de WordPress si el hosting tiene poco tráfico; evita depender sólo de visitas para procesar tareas pendientes.
+- Configura el cron real de WordPress cada minuto: las tareas de timbrado solo arrancan con el cron fuera del panel de administración. Sin él la factura depende de las visitas.
+- Excluye `/wp-json/wc/store/` del caché de página o de REST (LiteSpeed Cache y similares): el checkout de bloques lee el carrito de ahí.
 - Conserva el acceso de administrador de WooCommerce para revisar pedidos retenidos, reintentar facturación y atender errores.
-- Define con el cliente quién recibe los avisos de pedido retenido y quién puede cancelar CFDI.
+- Define con el cliente quién recibe los avisos (van al correo de administración del sitio): pedido retenido y CFDI que no se logra generar, también a público en general. Y quién puede cancelar CFDI.
 
 ## Entrega al cliente
 

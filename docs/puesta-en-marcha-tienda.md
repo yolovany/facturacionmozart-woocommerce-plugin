@@ -19,8 +19,9 @@ paso a paso está en [implementacion-cliente-woocommerce.md](implementacion-clie
 - WordPress 6.0+, WooCommerce 6.0+, PHP 7.4+ (probado con WP 7.0 / Woo 10.9 / PHP 8.2, HPOS activo).
 - La tienda debe salir a Internet y usar **HTTPS**; la URL del puente también es HTTPS.
 - Respaldo reciente de archivos y base de datos antes de instalar.
-- Cron real de WordPress recomendado si la tienda tiene poco tráfico (el timbrado corre en
-  segundo plano con Action Scheduler).
+- Cron real de WordPress **cada minuto** (el timbrado corre en segundo plano con Action
+  Scheduler, que fuera del panel solo arranca con el cron).
+- `/wp-json/wc/store/` fuera del caché de página o de REST (LiteSpeed Cache y similares).
 
 ## 3. Credenciales del comercio
 
