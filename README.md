@@ -1,4 +1,4 @@
-# Plugin de FacturaciónMozart para WooCommerce
+# FacturacionMozart — Facturación electrónica para WooCommerce
 
 ![License: GPL v2+](https://img.shields.io/badge/license-GPL--2.0--or--later-blue.svg)
 ![WordPress](https://img.shields.io/badge/WordPress-6.0%2B-21759b.svg)
@@ -82,7 +82,7 @@ pedidos de alto rendimiento (HPOS) activado.
 1. Descarga el `.zip` desde [Releases](../../releases) e instálalo desde
    **Plugins → Añadir nuevo → Subir plugin**, o copia la carpeta a `wp-content/plugins/`.
 2. Activa el plugin.
-3. **WooCommerce → Ajustes → Facturación CFDI**: captura la URL de tu backend y el token
+3. **WooCommerce → FacturacionMozart**: captura la URL de tu backend y el token
    de API, y pulsa "Probar conexión".
 
 Para una instalación en una tienda existente, con validación de dominio, webhook y prueba
@@ -154,7 +154,7 @@ independientemente de con qué tecnología esté implementado.
 
 ## Convenciones
 
-- **Base URL:** la que configures en *WooCommerce → Ajustes → Facturación CFDI → URL del
+- **Base URL:** la que configures en *WooCommerce → FacturacionMozart → URL del
   puente*, p.ej. `https://tu-servidor/api/v1/facturas`. El plugin deriva de ella la raíz
   (quitando `/facturas`) para los endpoints hermanos (`/health`, `/validar-receptor`,
   `/notificaciones`, `/catalogos/regimen-uso`).

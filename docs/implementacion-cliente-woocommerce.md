@@ -1,6 +1,6 @@
 # Implementación para una tienda WordPress/WooCommerce existente
 
-Esta guía instala **Facturación CFDI para WooCommerce** en una tienda ya operativa. No crea productos, páginas, temas ni contenido de demostración.
+Esta guía instala **FacturacionMozart — Facturación electrónica para WooCommerce** en una tienda ya operativa. No crea productos, páginas, temas ni contenido de demostración.
 
 ## Antes de empezar
 
@@ -25,7 +25,7 @@ No envíes tokens ni secretos por correo, chat o capturas. Entrégalos por un ca
 
 ## 2. Configurar la conexión de facturación
 
-En WordPress abre **WooCommerce → Facturación CFDI** y captura:
+En WordPress abre **WooCommerce → FacturacionMozart** y captura:
 
 | Campo | Valor esperado |
 |---|---|

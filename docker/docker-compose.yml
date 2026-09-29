@@ -1,4 +1,4 @@
-# Entorno de QA local para el plugin Facturación CFDI.
+# Entorno de QA local para el plugin FacturacionMozart.
 # Levanta WordPress + WooCommerce con el plugin montado desde el repo, para probar
 # el checkout (clásico y bloques) contra un puente REST propio (backend que implemente
 # el contrato descrito en ../readme.txt).

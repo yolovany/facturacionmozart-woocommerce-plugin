@@ -1,4 +1,4 @@
-# Reproducción del ENTORNO DEL CLIENTE FINAL para el plugin Facturación CFDI.
+# Reproducción del ENTORNO DEL CLIENTE FINAL para el plugin FacturacionMozart.
 #
 # A diferencia de docker-compose.yml (entorno de DESARROLLO, que monta el código del
 # plugin en vivo desde el repo), este stack reproduce EXACTAMENTE lo que hace el cliente:
@@ -19,7 +19,7 @@
 #
 # Nota: este demo NO trae backend/puente de facturación. El plugin queda "no configurado"
 # (no bloquea la venta, pero tampoco timbra). Para timbrar de verdad, levanta tu backend
-# en :8080 (contrato en ../readme.txt) y captura el token en Ajustes > Facturación CFDI.
+# en :8080 (contrato en ../readme.txt) y captura el token en WooCommerce > FacturacionMozart.
 
 name: facturacionmozart-demo
 

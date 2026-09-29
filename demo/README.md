@@ -46,7 +46,7 @@ wp eval-file setup-store.php
 wp eval-file make-images.php
 ```
 
-Luego configura el plugin (**WooCommerce → Ajustes → Facturación CFDI**): URL del
+Luego configura el plugin (**WooCommerce → FacturacionMozart**): URL del
 backend y token del emisor. El método de pago "Contra entrega" queda habilitado por
 `setup-store.php`.
 

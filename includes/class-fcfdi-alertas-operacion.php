@@ -65,7 +65,7 @@ class FCFDI_Alertas_Operacion {
 				'codigo'  => 'CONFIGURACION_PLUGIN_INCOMPLETA',
 				'nivel'   => 'error',
 				'mensaje' => __( 'El plugin está activo pero falta la URL del puente o el token. No se validan datos fiscales ni se generan CFDI.', 'facturacionmozart-woocommerce-plugin' ),
-				'accion'  => __( 'Completa la conexión en WooCommerce → Facturación CFDI.', 'facturacionmozart-woocommerce-plugin' ),
+				'accion'  => __( 'Completa la conexión en WooCommerce → FacturacionMozart.', 'facturacionmozart-woocommerce-plugin' ),
 			);
 		} else {
 			if ( ! FCFDI_Settings::get_webhook_secret() ) {
@@ -169,7 +169,7 @@ class FCFDI_Alertas_Operacion {
 				? 'notice notice-error'
 				: 'notice notice-warning';
 			echo '<div class="' . esc_attr( $clase ) . '"><p><strong>'
-				. esc_html__( 'Facturación CFDI:', 'facturacionmozart-woocommerce-plugin' )
+				. esc_html__( 'FacturacionMozart:', 'facturacionmozart-woocommerce-plugin' )
 				. '</strong> ' . esc_html( $alerta['mensaje'] );
 			if ( ! empty( $alerta['accion'] ) ) {
 				echo ' ' . esc_html( $alerta['accion'] );

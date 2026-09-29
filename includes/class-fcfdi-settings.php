@@ -74,7 +74,7 @@ class FCFDI_Settings {
 			return;
 		}
 		$url = admin_url( 'admin.php?page=fcfdi-settings' );
-		echo '<div class="notice notice-error"><p><strong>' . esc_html__( 'Facturación CFDI', 'facturacionmozart-woocommerce-plugin' ) . ':</strong> '
+		echo '<div class="notice notice-error"><p><strong>' . esc_html__( 'FacturacionMozart', 'facturacionmozart-woocommerce-plugin' ) . ':</strong> '
 			. esc_html__( 'la URL del puente no usa HTTPS. El token de API se envía en cada petición y viaja sin cifrar, al alcance de cualquiera que observe la red. Corrige la dirección para que empiece por https://.', 'facturacionmozart-woocommerce-plugin' )
 			. ' <a href="' . esc_url( $url ) . '">' . esc_html__( 'Revisar la configuración', 'facturacionmozart-woocommerce-plugin' ) . '</a>.</p></div>';
 	}
@@ -88,7 +88,7 @@ class FCFDI_Settings {
 			return;
 		}
 		$url = admin_url( 'admin.php?page=fcfdi-settings' );
-		echo '<div class="notice notice-warning"><p><strong>' . esc_html__( 'Facturación CFDI', 'facturacionmozart-woocommerce-plugin' ) . ':</strong> '
+		echo '<div class="notice notice-warning"><p><strong>' . esc_html__( 'FacturacionMozart', 'facturacionmozart-woocommerce-plugin' ) . ':</strong> '
 			. esc_html__( 'el plugin está activo pero sin configurar (falta la URL del puente o el token). Mientras tanto NO se validan datos fiscales en el checkout ni se generan CFDI.', 'facturacionmozart-woocommerce-plugin' )
 			. ' <a href="' . esc_url( $url ) . '">' . esc_html__( 'Configurar ahora', 'facturacionmozart-woocommerce-plugin' ) . '</a>.</p></div>';
 	}
@@ -136,8 +136,8 @@ class FCFDI_Settings {
 	public static function menu() {
 		add_submenu_page(
 			'woocommerce',
-			__( 'Facturación CFDI', 'facturacionmozart-woocommerce-plugin' ),
-			__( 'Facturación CFDI', 'facturacionmozart-woocommerce-plugin' ),
+			__( 'FacturacionMozart', 'facturacionmozart-woocommerce-plugin' ),
+			__( 'FacturacionMozart', 'facturacionmozart-woocommerce-plugin' ),
 			'manage_woocommerce',
 			'fcfdi-settings',
 			array( __CLASS__, 'render' )
@@ -228,7 +228,7 @@ class FCFDI_Settings {
 	public static function render() {
 		?>
 		<div class="wrap">
-			<h1><?php esc_html_e( 'Facturación CFDI para WooCommerce', 'facturacionmozart-woocommerce-plugin' ); ?></h1>
+			<h1><?php esc_html_e( 'FacturacionMozart — Facturación electrónica para WooCommerce', 'facturacionmozart-woocommerce-plugin' ); ?></h1>
 			<form method="post" action="options.php">
 				<?php settings_fields( 'fcfdi_settings_group' ); ?>
 				<table class="form-table" role="presentation">

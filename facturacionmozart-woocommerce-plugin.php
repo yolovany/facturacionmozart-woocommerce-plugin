@@ -1,6 +1,6 @@
 <?php
 /**
- * Plugin Name:       Facturación CFDI para WooCommerce
+ * Plugin Name:       FacturacionMozart — Facturación electrónica para WooCommerce
  * Plugin URI:        https://github.com/yolovany/facturacionmozart-woocommerce-plugin
  * Description:        Genera facturas CFDI automáticamente para cada pedido de WooCommerce a través del puente REST del sistema de facturación. El cliente puede solicitar factura con su RFC en el checkout; si no, se factura a público en general.
  * Version:           1.15.4
@@ -49,7 +49,7 @@ add_action(
 				'admin_notices',
 				function () {
 					echo '<div class="notice notice-error"><p>';
-					esc_html_e( 'Facturación CFDI para WooCommerce requiere que WooCommerce esté instalado y activo.', 'facturacionmozart-woocommerce-plugin' );
+					esc_html_e( 'FacturacionMozart requiere que WooCommerce esté instalado y activo.', 'facturacionmozart-woocommerce-plugin' );
 					echo '</p></div>';
 				}
 			);

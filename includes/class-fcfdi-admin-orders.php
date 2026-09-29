@@ -201,7 +201,7 @@ class FCFDI_Admin_Orders {
 		}
 
 		echo '<div class="order_data_column" style="width:100%;clear:both;padding-top:12px;">';
-		echo '<h3>' . esc_html__( 'Facturación CFDI', 'facturacionmozart-woocommerce-plugin' ) . '</h3>';
+		echo '<h3>' . esc_html__( 'FacturacionMozart', 'facturacionmozart-woocommerce-plugin' ) . '</h3>';
 		echo '<p><strong>' . esc_html__( 'Estado:', 'facturacionmozart-woocommerce-plugin' ) . '</strong> ' . esc_html( $estatus ) . '</p>';
 
 		if ( 'error' === $estatus ) {

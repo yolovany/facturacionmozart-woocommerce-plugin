@@ -49,7 +49,7 @@ El token autentica lo que la tienda **envía**; el secreto firma lo que la tiend
 
 ## 5. Configuración
 
-**WooCommerce → Ajustes → Facturación CFDI**:
+**WooCommerce → FacturacionMozart**:
 
 - **URL del puente**, **Token de API**, **Secreto del webhook** (los dos últimos quedan
   como "Guardado" y ya no se muestran: es lo esperado).

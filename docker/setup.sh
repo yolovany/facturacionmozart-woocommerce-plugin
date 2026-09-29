@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Instala WordPress + WooCommerce y activa el plugin Facturación CFDI.
+# Instala WordPress + WooCommerce y activa el plugin FacturacionMozart.
 # Idempotente: se puede correr varias veces.
 set -e
 
@@ -18,7 +18,7 @@ if ! $WP core is-installed >/dev/null 2>&1; then
   echo "==> Instalando WordPress..."
   $WP core install \
     --url="http://localhost:8000" \
-    --title="QA Facturación CFDI" \
+    --title="QA FacturacionMozart" \
     --admin_user="admin" \
     --admin_password="admin" \
     --admin_email="qa@example.test" \
@@ -41,7 +41,7 @@ echo "==> Instalando/activando WooCommerce..."
 $WP plugin is-installed woocommerce >/dev/null 2>&1 || $WP plugin install woocommerce --activate
 $WP plugin activate woocommerce || true
 
-echo "==> Instalando/activando el plugin Facturación CFDI..."
+echo "==> Instalando/activando el plugin FacturacionMozart..."
 # Dos modos, según cómo esté montado el plugin:
 #   - DEV (docker-compose.yml): el código va montado en vivo desde el repo, así que el
 #     plugin ya "existe" -> solo se activa (editas y refrescas, sin reinstalar).
@@ -102,7 +102,7 @@ $WP transient delete fcfdi_catalogo_regimen_uso >/dev/null 2>&1 || true
 echo ""
 echo "======================================================================"
 echo " LISTO. Abre http://localhost:8000  (admin / admin)"
-echo " Plugin en: WooCommerce > Ajustes > Facturación CFDI"
+echo " Plugin en: WooCommerce > FacturacionMozart"
 echo "   URL del puente: http://bridge/api/v1/facturas  (ya preconfigurada)"
 echo "   Falta: capturar el Token de tu backend/emisor y 'Probar conexión'."
 echo " Requisitos del host: tu backend/puente REST en :8080 (HTTP, sin TLS, para QA)."

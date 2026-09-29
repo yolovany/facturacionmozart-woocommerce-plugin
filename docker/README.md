@@ -1,6 +1,6 @@
 [← Volver al README principal](../README.md)
 
-# Entorno Docker de desarrollo local — Plugin Facturación CFDI
+# Entorno Docker de desarrollo local — plugin FacturacionMozart
 
 Levanta un WordPress + WooCommerce real (checkout clásico **y** de bloques) con la
 tienda demo "Botica Serena", para probar el checkout, el pre-flight y el filtro
@@ -137,11 +137,11 @@ docker compose -f docker-compose.demo.yml up -d
 
 > Igual que el modo de desarrollo, este demo **no** trae backend de facturación: el
 > plugin queda "no configurado" (no bloquea la venta, pero tampoco timbra). Para timbrar,
-> levanta tu backend en `:8080` y captura el token en Ajustes → Facturación CFDI.
+> levanta tu backend en `:8080` y captura el token en WooCommerce → FacturacionMozart.
 
 ## Configurar el plugin
 
-**WooCommerce → Ajustes → Facturación CFDI:**
+**WooCommerce → FacturacionMozart:**
 
 - **URL del puente:** `http://bridge/api/v1/facturas` (ya preconfigurada por
   `setup.sh`).

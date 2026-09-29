@@ -138,7 +138,7 @@ class FCFDI_Updater {
 
 		printf(
 			'<div class="notice notice-warning"><p><strong>%s:</strong> %s <a href="%s">%s</a></p></div>',
-			esc_html__( 'Facturación CFDI', 'facturacionmozart-woocommerce-plugin' ),
+			esc_html__( 'FacturacionMozart', 'facturacionmozart-woocommerce-plugin' ),
 			esc_html(
 				sprintf(
 					/* translators: 1: versión disponible, 2: versión instalada. */

@@ -1,4 +1,4 @@
-=== Facturación CFDI para WooCommerce ===
+=== FacturacionMozart — Facturación electrónica para WooCommerce ===
 Contributors: infotek
 Tags: woocommerce, cfdi, facturacion, sat, mexico
 Requires at least: 6.0
@@ -22,7 +22,7 @@ El plugin conecta tu tienda WooCommerce con el sistema de facturación CFDI medi
 
 == Configuración ==
 
-1. WooCommerce → Facturación CFDI.
+1. WooCommerce → FacturacionMozart.
 2. Captura la URL del puente (p.ej. https://tu-servidor/api/v1/facturas) y el token entregado por el proveedor.
 3. Pulsa "Probar conexión".
 
@@ -48,6 +48,9 @@ El plugin conecta tu tienda WooCommerce con el sistema de facturación CFDI medi
 
 = 1.15.4 =
 
+* Nombre nuevo: "FacturacionMozart — Facturación electrónica para WooCommerce". En el menú de
+  WooCommerce y en los avisos aparece como "FacturacionMozart". La configuración y los datos
+  guardados no cambian.
 * Si una factura a público en general no se logra timbrar, se avisa por correo al administrador
   (antes solo se avisaba de los pedidos retenidos, con factura a nombre del cliente).
 * Mi cuenta: la pestaña se llama "Mis facturas", con la misma forma que las demás del menú, y el perfil
@@ -138,7 +141,7 @@ Cambios que requieren tu atención al actualizar:
 * El "Secreto del webhook" pasa a ser obligatorio para recibir avisos de timbrado: ya no se
   usa el token de API en su lugar. Si el ajuste está vacío, los avisos se rechazan y los
   pedidos se actualizan sólo por sondeo (más lento, pero siguen actualizándose). Captúralo
-  en WooCommerce → Ajustes → Facturación CFDI con el valor que te dé tu proveedor.
+  en WooCommerce → FacturacionMozart con el valor que te dé tu proveedor.
   Motivo: usar el mismo valor para autenticar lo que la tienda envía y para verificar lo
   que recibe hace que comprometer uno afecte a ambas direcciones.
 * El "enlace de acceso" queda limitado a cuentas de cliente. Quien administra la tienda
