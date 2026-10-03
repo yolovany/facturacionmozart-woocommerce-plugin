@@ -77,6 +77,18 @@ class FCFDI_Alertas_Operacion {
 					'accion'  => __( 'Captura el mismo secreto configurado para esta tienda en el backend.', 'facturacionmozart-woocommerce-plugin' ),
 				);
 			}
+			$atraso = FCFDI_Existencias::sin_sincronia();
+			if ( $atraso ) {
+				// ponytail: si el puente entero está caído, el return de abajo no avisa (igual que las demás alertas).
+				$alertas[] = array(
+					'id'      => 'existencias:sin-sincronia',
+					'codigo'  => 'EXISTENCIAS_SIN_SINCRONIA',
+					'nivel'   => 'error',
+					/* translators: %d: horas sin sincronizar. */
+					'mensaje' => sprintf( __( 'Las existencias no se sincronizan con Mozart desde hace %d h: la tienda conserva las últimas y puede vender lo que ya no hay.', 'facturacionmozart-woocommerce-plugin' ), max( 1, (int) floor( $atraso / HOUR_IN_SECONDS ) ) ),
+					'accion'  => __( 'Revisa que el equipo de Mozart, MozartWeb y su conexión estén encendidos.', 'facturacionmozart-woocommerce-plugin' ),
+				);
+			}
 			$respuesta = ( new FCFDI_Api_Client() )->health();
 			if ( is_wp_error( $respuesta ) || 200 !== (int) $respuesta['code'] ) {
 				// Una caída temporal no borra el estado ni provoca que el mismo problema

@@ -263,6 +263,60 @@ class FCFDI_Api_Client {
 	}
 
 	/**
+	 * Existencias del almacén de venta en línea en Mozart (GET /existencias). 404 = el emisor no lo tiene.
+	 *
+	 * @return array|WP_Error
+	 */
+	public function existencias() {
+		$res = wp_remote_get(
+			$this->raiz() . '/existencias',
+			array(
+				'timeout' => 45,
+				'headers' => $this->cabeceras(),
+			)
+		);
+		return $this->normalizar( $res );
+	}
+
+	/**
+	 * Registra en Mozart una salida (salidas/{pedido}) o devolución (salidas/{pedido}/devoluciones/{n}).
+	 *
+	 * @param string $ruta      Ruta relativa a /api/v1.
+	 * @param array  $renglones sku => cantidad.
+	 * @return array|WP_Error
+	 */
+	public function movimiento_inventario( $ruta, array $renglones ) {
+		$cuerpo = array( 'renglones' => array() );
+		foreach ( $renglones as $sku => $cantidad ) {
+			$cuerpo['renglones'][] = array(
+				'sku'      => (string) $sku,
+				'cantidad' => $cantidad,
+			);
+		}
+		$res = wp_remote_post(
+			$this->raiz() . '/' . $ruta,
+			array(
+				'timeout' => 45,
+				'headers' => $this->cabeceras() + array( 'Content-Type' => 'application/json' ),
+				'body'    => wp_json_encode( $cuerpo ),
+			)
+		);
+		return $this->normalizar( $res );
+	}
+
+	private function raiz() {
+		return preg_replace( '#/facturas/?$#', '', $this->base_url );
+	}
+
+	private function cabeceras() {
+		return array(
+			'Authorization'          => 'Bearer ' . $this->token,
+			'X-FCFDI-Plugin-Version' => FCFDI_VERSION,
+			'Accept'                 => 'application/json',
+		);
+	}
+
+	/**
 	 * Normaliza la respuesta de wp_remote_* a array( code, body ).
 	 *
 	 * @param array|WP_Error $res Respuesta.

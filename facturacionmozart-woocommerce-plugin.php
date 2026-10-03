@@ -70,6 +70,7 @@ add_action(
 		require_once FCFDI_PLUGIN_DIR . 'includes/class-fcfdi-cliente.php';
 		require_once FCFDI_PLUGIN_DIR . 'includes/class-fcfdi-cuenta.php';
 		require_once FCFDI_PLUGIN_DIR . 'includes/class-fcfdi-updater.php';
+		require_once FCFDI_PLUGIN_DIR . 'includes/class-fcfdi-existencias.php';
 
 		FCFDI_Settings::init();
 		FCFDI_Alertas_Operacion::init();
@@ -84,6 +85,7 @@ add_action(
 		FCFDI_Cliente::init();
 		FCFDI_Cuenta::init();
 		FCFDI_Updater::init();
+		FCFDI_Existencias::init();
 
 		load_plugin_textdomain( 'facturacionmozart-woocommerce-plugin', false, dirname( plugin_basename( __FILE__ ) ) . '/languages' );
 	}
@@ -93,6 +95,7 @@ register_deactivation_hook(
 	FCFDI_PLUGIN_FILE,
 	function () {
 		wp_clear_scheduled_hook( 'fcfdi_revisar_alertas_operacion' );
+		wp_clear_scheduled_hook( 'fcfdi_sincronizar_existencias' );
 		delete_transient( 'fcfdi_alertas_operacion_revision' );
 	}
 );

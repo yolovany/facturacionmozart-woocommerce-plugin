@@ -301,6 +301,7 @@ class FCFDI_Settings {
 				} );
 			} )();
 			</script>
+			<?php FCFDI_Existencias::render_estado(); ?>
 		</div>
 		<?php
 	}

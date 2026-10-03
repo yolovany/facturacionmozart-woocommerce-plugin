@@ -39,6 +39,12 @@ para cada pedido, hablando por REST con un backend/puente de facturación propio
 - Alertas operativas para administradores por correo y en el panel cuando falta
   configuración o los folios disponibles cruzan un umbral, sin repetir el aviso en cada
   timbrado.
+- Existencias desde Mozart (si el emisor tiene almacén de venta en línea en el puente): cada
+  5 minutos la existencia de cada producto y variación es la del almacén, cruzando SKU =
+  código de barras; lo que no está en el almacén queda agotado. Lo que WooCommerce descuenta
+  al apartar un pedido sale de Mozart, y lo que regresa (cancelación o reembolso con «Reponer
+  existencias») entra como devolución, sin duplicar si se reintenta. Si Mozart no responde,
+  la tienda conserva sus existencias y avisa tras una hora.
 
 ## Cómo funciona (arquitectura)
 
@@ -348,6 +354,15 @@ Régimen fiscal / uso de CFDI y qué combinaciones son válidas (Anexo 20 SAT). 
 cachea y lo usa para no dejar capturar combinaciones que el timbrado rechazaría.
 
 **Response:** `{ "regimenes": {clave:label}, "usos": {clave:label}, "matriz": {uso:[regimenes]} }`.
+
+### `GET /existencias` y `POST /salidas/{pedido}` — venta en línea
+
+Existencias del almacén de Mozart que surte la tienda (`200 {almacen, total, existencias:
+[{sku, existencia}]}`; `404 SIN_ALMACEN_EN_LINEA` si el emisor no lo tiene, y entonces el
+plugin no toca el inventario). `POST /salidas/{pedido}` y
+`POST /salidas/{pedido}/devoluciones/{n}` con `{renglones:[{sku, cantidad}]}` registran la
+salida y la devolución en Mozart (`200 {resultado: REGISTRADO|YA_EXISTIA}`; `502` se
+reintenta en la siguiente sincronía; `422` deja nota en el pedido para hacerlo a mano).
 
 ### `POST /notificaciones` — enviar un correo por el SMTP del emisor
 
