@@ -216,7 +216,7 @@ class FCFDI_Order_Handler {
 	 * @param int $order_id Id del pedido.
 	 */
 	public static function enviar( $order_id ) {
-		$order = wc_get_order( $order_id );
+		$order = self::pedido_fresco( $order_id );
 		if ( ! $order || $order->get_meta( '_fcfdi_factura_id' ) ) {
 			return;
 		}
@@ -271,6 +271,23 @@ class FCFDI_Order_Handler {
 
 		// Error de negocio (4xx): no reintentar, registrar para revisión.
 		self::registrar_error( $order, $body, $code );
+	}
+
+	/**
+	 * El pedido como está en la base, no la copia en memoria del proceso. El cron real corre en un solo proceso los
+	 * eventos de WP-cron (la sincronía de existencias carga los pedidos recién pagados) y luego la cola de Action
+	 * Scheduler, que solo limpia la caché al terminar cada lote: wc_get_order() puede devolver el pedido como estaba
+	 * antes de que otra petición guardara 'encolada' o un movimiento de inventario.
+	 *
+	 * @param int $order_id Id del pedido.
+	 * @return WC_Order|false
+	 */
+	public static function pedido_fresco( $order_id ) {
+		if ( class_exists( '\Automattic\WooCommerce\Caches\OrderCache' ) ) {
+			wc_get_container()->get( \Automattic\WooCommerce\Caches\OrderCache::class )->remove( $order_id );
+		}
+		clean_post_cache( $order_id ); // Sin HPOS, el pedido y su meta viven en la caché de posts.
+		return wc_get_order( $order_id );
 	}
 
 	/**
@@ -359,7 +376,7 @@ class FCFDI_Order_Handler {
 	 * @param int $order_id Id del pedido.
 	 */
 	public static function consultar( $order_id ) {
-		$order = wc_get_order( $order_id );
+		$order = self::pedido_fresco( $order_id );
 		if ( ! $order ) {
 			return;
 		}

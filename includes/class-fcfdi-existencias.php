@@ -167,7 +167,7 @@ class FCFDI_Existencias {
 	 * en el pedido; los que no llegan se reintentan en la siguiente sincronía.
 	 */
 	public static function enviar_pedido( $order_id ) {
-		$order = wc_get_order( $order_id );
+		$order = FCFDI_Order_Handler::pedido_fresco( $order_id );
 		if ( ! $order ) {
 			self::marcar_pendiente( $order_id, false );
 			return;
@@ -202,7 +202,7 @@ class FCFDI_Existencias {
 		}
 
 		// Se relee antes de guardar: otra petición pudo agregar un movimiento (p. ej. una cancelación) mientras se mandaba.
-		$order = wc_get_order( $order_id );
+		$order = FCFDI_Order_Handler::pedido_fresco( $order_id );
 		$movs  = self::movimientos( $order );
 		foreach ( $resultados as $i => list( $mov, $estado, $error ) ) {
 			if ( isset( $movs[ $i ] ) && $movs[ $i ]['tipo'] === $mov['tipo'] && $movs[ $i ]['ref'] === $mov['ref'] ) {
@@ -223,7 +223,7 @@ class FCFDI_Existencias {
 	private static function ajuste_pendiente() {
 		$ajuste = array();
 		foreach ( array_keys( (array) get_option( self::PENDIENTES, array() ) ) as $order_id ) {
-			$order = wc_get_order( $order_id );
+			$order = FCFDI_Order_Handler::pedido_fresco( $order_id );
 			if ( ! $order ) {
 				continue;
 			}
@@ -240,16 +240,17 @@ class FCFDI_Existencias {
 	}
 
 	/**
-	 * SKUs de los pedidos que quedaron pendientes después de $antes. Se lee de la base y no del caché de opciones, que
-	 * no ve lo que otra petición acaba de guardar.
-	 * ponytail: una consulta por producto; si el catálogo crece a miles, leerla cada N productos.
+	 * SKUs de los pedidos que quedaron pendientes después de $antes. Se lee de la base y no del caché de opciones ni del
+	 * de pedidos, que no ven lo que otra petición acaba de guardar.
+	 * ponytail: una consulta (y la relectura de cada pedido nuevo) por producto; si el catálogo crece a miles, leerla cada N
+	 * productos.
 	 */
 	private static function skus_nuevos( $antes ) {
 		global $wpdb;
 		$lista = maybe_unserialize( $wpdb->get_var( $wpdb->prepare( "SELECT option_value FROM {$wpdb->options} WHERE option_name = %s", self::PENDIENTES ) ) );
 		$skus  = array();
 		foreach ( array_diff( array_keys( is_array( $lista ) ? $lista : array() ), $antes ) as $order_id ) {
-			$order = wc_get_order( $order_id );
+			$order = FCFDI_Order_Handler::pedido_fresco( $order_id );
 			foreach ( $order ? self::movimientos( $order ) : array() as $mov ) {
 				$skus += array_fill_keys( array_keys( $mov['renglones'] ), true );
 			}
