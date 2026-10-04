@@ -239,6 +239,24 @@ class FCFDI_Existencias {
 		return $ajuste;
 	}
 
+	/**
+	 * SKUs de los pedidos que quedaron pendientes después de $antes. Se lee de la base y no del caché de opciones, que
+	 * no ve lo que otra petición acaba de guardar.
+	 * ponytail: una consulta por producto; si el catálogo crece a miles, leerla cada N productos.
+	 */
+	private static function skus_nuevos( $antes ) {
+		global $wpdb;
+		$lista = maybe_unserialize( $wpdb->get_var( $wpdb->prepare( "SELECT option_value FROM {$wpdb->options} WHERE option_name = %s", self::PENDIENTES ) ) );
+		$skus  = array();
+		foreach ( array_diff( array_keys( is_array( $lista ) ? $lista : array() ), $antes ) as $order_id ) {
+			$order = wc_get_order( $order_id );
+			foreach ( $order ? self::movimientos( $order ) : array() as $mov ) {
+				$skus += array_fill_keys( array_keys( $mov['renglones'] ), true );
+			}
+		}
+		return $skus;
+	}
+
 	// ---- Sincronía de existencias -------------------------------------------------------------------------------
 
 	public static function sincronizar() {
@@ -254,6 +272,7 @@ class FCFDI_Existencias {
 
 		// Pendientes antes que Mozart: si una salida se registra entre las dos lecturas, cuenta doble y la tienda queda
 		// abajo hasta la siguiente sincronía (nunca arriba, que sería vender lo que no hay).
+		$antes  = array_keys( (array) get_option( self::PENDIENTES, array() ) );
 		$ajuste = self::ajuste_pendiente();
 		$res    = ( new FCFDI_Api_Client() )->existencias();
 		$code   = is_wp_error( $res ) ? 0 : (int) $res['code'];
@@ -302,6 +321,11 @@ class FCFDI_Existencias {
 					$product->set_stock_quantity( 0 ); // Un _stock vacío no admite la suma atómica (MySQL estricto la rechaza).
 				}
 				$product->save();
+			}
+			// Vendido (o repuesto) mientras corría esta sincronía: el ajuste ya no lo incluye y el producto sí; se deja
+			// para la siguiente, si no la venta se «devuelve» a la tienda.
+			if ( '' !== $sku && isset( self::skus_nuevos( $antes )[ $sku ] ) ) {
+				continue;
 			}
 			// Suma o resta atómica (no 'set'): una venta que ocurra a la par no se pierde.
 			$diferencia = $cantidad - (int) $product->get_stock_quantity();
