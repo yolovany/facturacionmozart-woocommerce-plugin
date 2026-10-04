@@ -295,9 +295,12 @@ class FCFDI_Existencias {
 			$cantidad = '' !== $sku && isset( $mozart[ $sku ] ) ? $mozart[ $sku ] + ( isset( $ajuste[ $sku ] ) ? $ajuste[ $sku ] : 0 ) : 0;
 			$cantidad = max( 0, (int) floor( $cantidad ) ); // Mozart puede traer decimales o negativos; la tienda vende piezas.
 
-			if ( ! $product->get_manage_stock() || 'no' !== $product->get_backorders() ) {
+			if ( ! $product->get_manage_stock() || 'no' !== $product->get_backorders() || null === $product->get_stock_quantity() ) {
 				$product->set_manage_stock( true );
 				$product->set_backorders( 'no' );
+				if ( null === $product->get_stock_quantity() ) {
+					$product->set_stock_quantity( 0 ); // Un _stock vacío no admite la suma atómica (MySQL estricto la rechaza).
+				}
 				$product->save();
 			}
 			// Suma o resta atómica (no 'set'): una venta que ocurra a la par no se pierde.
