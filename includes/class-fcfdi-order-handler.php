@@ -223,7 +223,14 @@ class FCFDI_Order_Handler {
 		// Solo se envía si el pedido sigue en la ruta de envío. Si la facturación se
 		// abortó (p.ej. el pedido se canceló antes de timbrar), el estatus ya no es
 		// 'encolada'/'reintentando' y esta acción encolada debe morir en silencio.
-		if ( ! in_array( (string) $order->get_meta( '_fcfdi_estatus' ), array( 'encolada', 'reintentando' ), true ) ) {
+		$estatus = (string) $order->get_meta( '_fcfdi_estatus' );
+		if ( ! in_array( $estatus, array( 'encolada', 'reintentando' ), true ) ) {
+			// Sin estatus en un pedido vivo: el cron real tomó el envío (1 s después del pago) antes de que se viera
+			// el 'encolada' que guardó on_pagado. Morir aquí dejaba el pedido pagado sin CFDI y sin aviso; se espera
+			// a que se vea (hasta 3 min) y, si no, queda en error para que el admin lo reintente.
+			if ( '' === $estatus && $order->has_status( array( 'processing', 'completed', 'on-hold' ) ) ) {
+				self::esperar_estatus( $order );
+			}
 			return;
 		}
 
@@ -264,6 +271,28 @@ class FCFDI_Order_Handler {
 
 		// Error de negocio (4xx): no reintentar, registrar para revisión.
 		self::registrar_error( $order, $body, $code );
+	}
+
+	/**
+	 * Reprograma el envío en un minuto (hasta 3 veces) mientras el pedido no muestra su estatus de facturación.
+	 *
+	 * @param WC_Order $order Pedido.
+	 */
+	private static function esperar_estatus( $order ) {
+		$esperas = (int) $order->get_meta( '_fcfdi_esperas_estatus' ) + 1;
+		if ( $esperas > 3 ) {
+			$motivo = __( 'El envío al puente no encontró el pedido listo para facturar. Usa «Reintentar».', 'facturacionmozart-woocommerce-plugin' );
+			$order->update_meta_data( '_fcfdi_estatus', 'error' );
+			$order->update_meta_data( '_fcfdi_error', $motivo );
+			$order->update_meta_data( '_fcfdi_error_reintentable', 'si' );
+			$order->save();
+			$order->add_order_note( '⚠️ ' . $motivo );
+			self::escalar_si_retenido( $order, $motivo );
+			return;
+		}
+		$order->update_meta_data( '_fcfdi_esperas_estatus', $esperas );
+		$order->save_meta_data(); // Solo esta marca: el resto del pedido puede estar a medio guardar en otra petición.
+		as_schedule_single_action( time() + 60, self::HOOK_ENVIAR, array( 'order_id' => $order->get_id() ), 'facturacionmozart-woocommerce-plugin' );
 	}
 
 	/**
