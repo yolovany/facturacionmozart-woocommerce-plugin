@@ -48,6 +48,10 @@ El plugin conecta tu tienda WooCommerce con el sistema de facturación CFDI medi
 
 = 1.15.4 =
 
+* Ajuste "Días para corregir datos fiscales" (vacío por omisión, como hasta ahora). Con un
+  valor, si el SAT rechaza los datos de un pedido retenido se le piden al cliente por correo al
+  momento, con recordatorio un día antes; al vencer, se factura a público en general y el pedido
+  se libera.
 * Ajuste "Factura después de comprar" (marcado por omisión, como hasta ahora). Sin marcar, la
   factura a nombre del cliente solo se pide al comprar: Mi cuenta ya no ofrece pedirla ni
   sustituir la de público en general, y la casilla "Requiero factura" avisa que después ya no

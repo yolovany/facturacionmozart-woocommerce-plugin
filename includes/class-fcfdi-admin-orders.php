@@ -29,6 +29,99 @@ class FCFDI_Admin_Orders {
 		add_action( 'woocommerce_admin_order_data_after_order_details', array( __CLASS__, 'panel_recuperacion' ) );
 		add_action( 'admin_post_fcfdi_admin_reintentar', array( __CLASS__, 'procesar_reintento_directo' ) );
 		add_action( 'admin_post_fcfdi_admin_pedir_correccion', array( __CLASS__, 'procesar_correccion_directa' ) );
+		// Plazo para corregir datos fiscales (ajuste «Días para corregir datos fiscales»).
+		add_action( 'fcfdi_correccion_recordar', array( __CLASS__, 'recordar_correccion' ), 10, 2 );
+		add_action( 'fcfdi_correccion_vencer', array( __CLASS__, 'vencer_correccion' ), 10, 2 );
+	}
+
+	/**
+	 * Días que tiene el cliente para corregir sus datos fiscales rechazados; 0 = sin plazo
+	 * (el pedido sigue retenido hasta que alguien lo resuelva).
+	 *
+	 * @return int
+	 */
+	public static function dias_correccion() {
+		return max( 0, (int) FCFDI_Settings::get( 'dias_correccion', '' ) );
+	}
+
+	/**
+	 * ¿Sigue esperando la corrección que se pidió en $desde? Si el cliente corrigió, el
+	 * personal resolvió o se pidió de nuevo, la acción programada ya no aplica.
+	 *
+	 * @param WC_Order|false $order Pedido.
+	 * @param int            $desde Momento en que se pidió.
+	 * @return bool
+	 */
+	private static function espera_correccion( $order, $desde ) {
+		return $order && (int) $order->get_meta( '_fcfdi_correccion_desde' ) === (int) $desde && $order->has_status( 'on-hold' )
+			&& 'error' === $order->get_meta( '_fcfdi_estatus' ) && FCFDI_Order_Handler::requiere_accion_cliente( $order );
+	}
+
+	/**
+	 * Fecha límite de la corrección, para los correos al cliente.
+	 *
+	 * @param WC_Order $order Pedido.
+	 * @return string
+	 */
+	private static function limite_correccion( $order ) {
+		return wp_date( 'j \d\e F \a \l\a\s H:i', (int) $order->get_meta( '_fcfdi_correccion_desde' ) + self::dias_correccion() * DAY_IN_SECONDS );
+	}
+
+	/**
+	 * Un día antes de vencer, recuerda al cliente que corrija sus datos.
+	 *
+	 * @param int $order_id Id del pedido.
+	 * @param int $desde    Momento en que se pidió la corrección.
+	 */
+	public static function recordar_correccion( $order_id, $desde ) {
+		$order = wc_get_order( $order_id );
+		if ( ! self::espera_correccion( $order, $desde ) || ! $order->get_billing_email() ) {
+			return;
+		}
+		wp_mail(
+			$order->get_billing_email(),
+			/* translators: 1: nombre tienda, 2: número de pedido */
+			sprintf( __( '[%1$s] Recordatorio: actualiza los datos de tu factura (pedido #%2$s)', 'facturacionmozart-woocommerce-plugin' ), get_bloginfo( 'name' ), $order->get_order_number() ),
+			sprintf(
+				/* translators: 1: número de pedido, 2: motivo, 3: URL del pedido, 4: fecha límite */
+				__( "Hola,\n\nAún no recibimos los datos corregidos para la factura de tu pedido #%1\$s:\n\n%2\$s\n\nPuedes actualizarlos desde tu pedido:\n%3\$s\n\nSi no los actualizas antes del %4\$s, emitiremos tu factura a público en general y tu pedido seguirá su curso.\n\nGracias.", 'facturacionmozart-woocommerce-plugin' ),
+				$order->get_order_number(),
+				FCFDI_Checkout::mensaje_error( FCFDI_Order_Handler::codigo_error( $order ) ),
+				$order->get_view_order_url(),
+				self::limite_correccion( $order )
+			)
+		);
+		$order->add_order_note( __( '✉️ Se le recordó al cliente que corrija sus datos fiscales (vence mañana).', 'facturacionmozart-woocommerce-plugin' ) );
+	}
+
+	/**
+	 * Al vencer el plazo sin corrección: la factura sale a público en general y el pedido
+	 * se libera (sigue su curso).
+	 *
+	 * @param int $order_id Id del pedido.
+	 * @param int $desde    Momento en que se pidió la corrección.
+	 */
+	public static function vencer_correccion( $order_id, $desde ) {
+		$order = wc_get_order( $order_id );
+		if ( ! self::espera_correccion( $order, $desde ) ) {
+			return;
+		}
+		$order->update_meta_data( '_fcfdi_requiere_factura', 'no' );
+		foreach ( array( '_fcfdi_factura_id', '_fcfdi_estatus', '_fcfdi_error', '_fcfdi_error_tipo', '_fcfdi_error_reintentable', '_fcfdi_envio_intentos', '_fcfdi_poll_intentos', '_fcfdi_correccion_solicitada', '_fcfdi_correccion_desde' ) as $meta ) {
+			$order->delete_meta_data( $meta );
+		}
+		$order->save();
+		$order->add_order_note(
+			sprintf(
+				/* translators: %d: días del plazo */
+				__( 'Venció el plazo de %d días sin que el cliente corrigiera sus datos fiscales: se factura a público en general y se libera el pedido.', 'facturacionmozart-woocommerce-plugin' ),
+				self::dias_correccion()
+			)
+		);
+		// Al volver a su estado previo se encola la factura (on_pagado); la segunda llamada
+		// cubre un estado que no la dispare y no duplica (guarda anti-duplicado).
+		FCFDI_Order_Handler::liberar_si_retenido( $order );
+		FCFDI_Order_Handler::on_pagado( $order->get_id() );
 	}
 
 	/**
@@ -155,6 +248,26 @@ class FCFDI_Admin_Orders {
 
 		// Habilita el formulario de corrección en la vista de pedido del cliente.
 		$order->update_meta_data( '_fcfdi_correccion_solicitada', 'si' );
+		// Con plazo, corre desde la primera solicitud (reenviarla no lo alarga): recordatorio
+		// un día antes y, al vencer, público en general.
+		$dias  = self::dias_correccion();
+		$plazo = '';
+		if ( $dias ) {
+			if ( ! $order->get_meta( '_fcfdi_correccion_desde' ) ) {
+				$desde = time();
+				$order->update_meta_data( '_fcfdi_correccion_desde', $desde );
+				$args = array( 'order_id' => $order->get_id(), 'desde' => $desde );
+				if ( $dias > 1 ) {
+					as_schedule_single_action( $desde + ( $dias - 1 ) * DAY_IN_SECONDS, 'fcfdi_correccion_recordar', $args, 'facturacionmozart-woocommerce-plugin' );
+				}
+				as_schedule_single_action( $desde + $dias * DAY_IN_SECONDS, 'fcfdi_correccion_vencer', $args, 'facturacionmozart-woocommerce-plugin' );
+			}
+			$plazo = "\n\n" . sprintf(
+				/* translators: %s: fecha límite */
+				__( 'Si no los actualizas antes del %s, emitiremos tu factura a público en general y tu pedido seguirá su curso.', 'facturacionmozart-woocommerce-plugin' ),
+				self::limite_correccion( $order )
+			);
+		}
 		$order->save();
 
 		$para  = $order->get_billing_email();
@@ -167,14 +280,15 @@ class FCFDI_Admin_Orders {
 			$order->get_order_number()
 		);
 		$cuerpo = sprintf(
-			/* translators: 1: número de pedido, 2: motivo, 3: URL del pedido */
+			/* translators: 1: número de pedido, 2: motivo, 3: URL del pedido, 4: plazo (vacío sin plazo) */
 			__(
-				"Hola,\n\nTu pago del pedido #%1\$s quedó registrado, pero no pudimos generar tu factura (CFDI) por lo siguiente:\n\n%2\$s\n\nPuedes actualizar los datos necesarios y reintentar la factura directamente desde tu pedido:\n%3\$s\n\nGracias.",
+				"Hola,\n\nTu pago del pedido #%1\$s quedó registrado, pero no pudimos generar tu factura (CFDI) por lo siguiente:\n\n%2\$s\n\nPuedes actualizar los datos necesarios y reintentar la factura directamente desde tu pedido:\n%3\$s%4\$s\n\nGracias.",
 				'facturacionmozart-woocommerce-plugin'
 			),
 			$order->get_order_number(),
 			$motivo,
-			$url
+			$url,
+			$plazo
 		);
 
 		$enviado = $para ? wp_mail( $para, $asunto, $cuerpo ) : false;

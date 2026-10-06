@@ -168,6 +168,7 @@ class FCFDI_Settings {
 			'webhook_secret'   => self::sanear_secreto( $input, 'webhook_secret' ),
 			'facturar_siempre' => empty( $input['facturar_siempre'] ) ? 'no' : 'si',
 			'facturar_despues' => empty( $input['facturar_despues'] ) ? 'no' : 'si',
+			'dias_correccion'  => empty( $input['dias_correccion'] ) ? '' : (string) absint( $input['dias_correccion'] ),
 		);
 	}
 
@@ -286,6 +287,16 @@ class FCFDI_Settings {
 							</label>
 							<p class="description">
 								<?php esc_html_e( 'Sin marcar, la factura a su nombre solo se pide al comprar y la casilla «Requiero factura» lo avisa. Quien la pidió al comprar puede seguir corrigiendo sus datos si se rechazan.', 'facturacionmozart-woocommerce-plugin' ); ?>
+							</p>
+						</td>
+					</tr>
+					<tr>
+						<th scope="row"><label for="fcfdi-dias-correccion"><?php esc_html_e( 'Días para corregir datos fiscales', 'facturacionmozart-woocommerce-plugin' ); ?></label></th>
+						<td>
+							<input type="number" min="1" step="1" class="small-text" id="fcfdi-dias-correccion" name="<?php echo esc_attr( self::OPTION ); ?>[dias_correccion]"
+								value="<?php echo esc_attr( self::get( 'dias_correccion', '' ) ); ?>" />
+							<p class="description">
+								<?php esc_html_e( 'Si el SAT rechaza los datos fiscales de un pedido retenido, se le piden al cliente por correo al momento, con un recordatorio un día antes de vencer. Al vencer sin corrección, se factura a público en general y el pedido se libera. Vacío: sin plazo (el personal pide la corrección y el pedido sigue retenido hasta resolverlo).', 'facturacionmozart-woocommerce-plugin' ); ?>
 							</p>
 						</td>
 					</tr>

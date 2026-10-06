@@ -595,9 +595,20 @@ class FCFDI_Order_Handler {
 		 * @param string   $motivo Motivo del fallo.
 		 */
 		do_action( 'fcfdi_facturacion_retenida', $order, $motivo );
-		$pasos = self::requiere_accion_cliente( $order )
-			? __( "El error requiere datos del cliente:\n1. Abre el pedido en WooCommerce.\n2. Pulsa “Solicitar actualización de datos al cliente”.\n3. El cliente podrá corregirlos y reintentar desde el enlace recibido.", 'facturacionmozart-woocommerce-plugin' )
-			: __( "El error corresponde al servicio o a la configuración, no a los datos fiscales del cliente:\n1. Revisa y corrige la incidencia indicada.\n2. Abre el pedido en WooCommerce.\n3. Pulsa “Reintentar ahora”.", 'facturacionmozart-woocommerce-plugin' );
+		$dias = FCFDI_Admin_Orders::dias_correccion();
+		if ( $dias && self::requiere_accion_cliente( $order ) ) {
+			// Con plazo, la corrección se le pide al cliente al momento (el plazo corre desde aquí).
+			FCFDI_Admin_Orders::pedir_correccion( $order );
+			$pasos = sprintf(
+				/* translators: %d: días del plazo */
+				__( "El error requiere datos del cliente. Ya se le pidieron por correo, con un enlace para corregirlos: tiene %d días; si no lo hace, se factura a público en general y el pedido se libera solo.\nSi te da los datos por otro medio, corrígelos en el pedido y pulsa “Reintentar ahora”.", 'facturacionmozart-woocommerce-plugin' ),
+				$dias
+			);
+		} else {
+			$pasos = self::requiere_accion_cliente( $order )
+				? __( "El error requiere datos del cliente:\n1. Abre el pedido en WooCommerce.\n2. Pulsa “Solicitar actualización de datos al cliente”.\n3. El cliente podrá corregirlos y reintentar desde el enlace recibido.", 'facturacionmozart-woocommerce-plugin' )
+				: __( "El error corresponde al servicio o a la configuración, no a los datos fiscales del cliente:\n1. Revisa y corrige la incidencia indicada.\n2. Abre el pedido en WooCommerce.\n3. Pulsa “Reintentar ahora”.", 'facturacionmozart-woocommerce-plugin' );
+		}
 		wp_mail(
 			get_option( 'admin_email' ),
 			sprintf( __( '[%1$s] Pedido #%2$s retenido: falló la facturación CFDI', 'facturacionmozart-woocommerce-plugin' ), get_bloginfo( 'name' ), $order->get_order_number() ),
@@ -618,8 +629,13 @@ class FCFDI_Order_Handler {
 	 * @return bool
 	 */
 	public static function requiere_factura( $order ) {
-		if ( 'si' === $order->get_meta( '_fcfdi_requiere_factura' ) ) {
+		$meta = $order->get_meta( '_fcfdi_requiere_factura' );
+		if ( 'si' === $meta ) {
 			return true;
+		}
+		// 'no' manda sobre la casilla de bloques: así queda al vencer el plazo de corrección.
+		if ( 'no' === $meta ) {
+			return false;
 		}
 		if ( class_exists( 'FCFDI_Blocks' ) ) {
 			$v = FCFDI_Blocks::leer( $order, 'requiere-factura' );

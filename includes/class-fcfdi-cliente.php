@@ -684,7 +684,9 @@ class FCFDI_Cliente {
 		$order->update_meta_data( '_fcfdi_uso_cfdi', $uso );
 		$order->update_meta_data( '_fcfdi_correccion_solicitada', '' );
 		// Limpia estado de facturación previo para permitir el reintento.
-		foreach ( array( '_fcfdi_factura_id', '_fcfdi_estatus', '_fcfdi_error', '_fcfdi_error_tipo', '_fcfdi_error_reintentable', '_fcfdi_envio_intentos', '_fcfdi_poll_intentos' ) as $meta ) {
+		// Sin _fcfdi_correccion_desde, el recordatorio y el vencimiento ya programados no aplican;
+		// si se vuelve a rechazar, corre un plazo nuevo.
+		foreach ( array( '_fcfdi_factura_id', '_fcfdi_estatus', '_fcfdi_error', '_fcfdi_error_tipo', '_fcfdi_error_reintentable', '_fcfdi_envio_intentos', '_fcfdi_poll_intentos', '_fcfdi_correccion_desde' ) as $meta ) {
 			$order->delete_meta_data( $meta );
 		}
 		$order->save();
