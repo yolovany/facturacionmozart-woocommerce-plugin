@@ -27,7 +27,9 @@ para cada pedido, hablando por REST con un backend/puente de facturación propio
   navegador) y adjunto automático por correo.
 - Cancelación de CFDI ante el SAT desde la página del pedido.
 - Portal del cliente: pestaña "Mis facturas", perfil fiscal reutilizable con autorrelleno
-  del checkout, solicitud de factura post-compra.
+  del checkout, solicitud de factura post-compra. El ajuste "Factura después de comprar"
+  (marcado por omisión) decide si el cliente puede pedirla a su nombre después de comprar;
+  sin marcar, solo al comprar, y la casilla "Requiero factura" lo avisa.
 - Cuenta sin fricción: al comprar se crea la cuenta del cliente automáticamente (sin
   contraseña) y se guardan sus datos de facturación/envío; el acceso posterior es por
   "enlace de acceso" al correo (un solo uso, con caducidad), sin contraseñas que recordar.

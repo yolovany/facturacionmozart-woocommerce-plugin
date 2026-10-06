@@ -225,9 +225,10 @@ class FCFDI_Checkout {
 		woocommerce_form_field(
 			'fcfdi_requiere_factura',
 			array(
-				'type'  => 'checkbox',
-				'class' => array( 'fcfdi-requiere' ),
-				'label' => __( 'Requiero factura', 'facturacionmozart-woocommerce-plugin' ),
+				'type'        => 'checkbox',
+				'class'       => array( 'fcfdi-requiere' ),
+				'label'       => __( 'Requiero factura', 'facturacionmozart-woocommerce-plugin' ),
+				'description' => FCFDI_Cliente::facturar_despues() ? '' : __( 'Si no la pides ahora, después ya no podrás pedirla.', 'facturacionmozart-woocommerce-plugin' ),
 			),
 			$checkout->get_value( 'fcfdi_requiere_factura' )
 		);

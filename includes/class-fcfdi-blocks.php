@@ -114,12 +114,18 @@ class FCFDI_Blocks {
 			return; // WooCommerce sin soporte de additional checkout fields.
 		}
 
+		// Los campos de bloque no tienen descripción: el aviso va en la etiqueta. Sin el
+		// «(opcional)» que WooCommerce agrega, que en una casilla no dice nada.
+		$etiqueta = FCFDI_Cliente::facturar_despues()
+			? __( 'Requiero factura', 'facturacionmozart-woocommerce-plugin' )
+			: __( 'Requiero factura (si no la pides ahora, después ya no podrás pedirla)', 'facturacionmozart-woocommerce-plugin' );
 		woocommerce_register_additional_checkout_field(
 			array(
-				'id'       => self::field_id( 'requiere-factura' ),
-				'label'    => __( 'Requiero factura', 'facturacionmozart-woocommerce-plugin' ),
-				'location' => 'order',
-				'type'     => 'checkbox',
+				'id'            => self::field_id( 'requiere-factura' ),
+				'label'         => $etiqueta,
+				'optionalLabel' => $etiqueta,
+				'location'      => 'order',
+				'type'          => 'checkbox',
 			)
 		);
 

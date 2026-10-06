@@ -48,6 +48,10 @@ El plugin conecta tu tienda WooCommerce con el sistema de facturación CFDI medi
 
 = 1.15.4 =
 
+* Ajuste "Factura después de comprar" (marcado por omisión, como hasta ahora). Sin marcar, la
+  factura a nombre del cliente solo se pide al comprar: Mi cuenta ya no ofrece pedirla ni
+  sustituir la de público en general, y la casilla "Requiero factura" avisa que después ya no
+  podrá. Quien la pidió al comprar sigue pudiendo corregir sus datos si se rechazan.
 * Nombre nuevo: "FacturacionMozart — Facturación electrónica para WooCommerce". En el menú de
   WooCommerce y en los avisos aparece como "FacturacionMozart". La configuración y los datos
   guardados no cambian.

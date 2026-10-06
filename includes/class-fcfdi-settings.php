@@ -167,6 +167,7 @@ class FCFDI_Settings {
 			'api_token'        => self::sanear_secreto( $input, 'api_token' ),
 			'webhook_secret'   => self::sanear_secreto( $input, 'webhook_secret' ),
 			'facturar_siempre' => empty( $input['facturar_siempre'] ) ? 'no' : 'si',
+			'facturar_despues' => empty( $input['facturar_despues'] ) ? 'no' : 'si',
 		);
 	}
 
@@ -273,6 +274,19 @@ class FCFDI_Settings {
 									<?php checked( 'si', self::get( 'facturar_siempre', 'si' ) ); ?> />
 								<?php esc_html_e( 'Generar CFDI para todos los pedidos (público en general si el cliente no pide factura).', 'facturacionmozart-woocommerce-plugin' ); ?>
 							</label>
+						</td>
+					</tr>
+					<tr>
+						<th scope="row"><?php esc_html_e( 'Factura después de comprar', 'facturacionmozart-woocommerce-plugin' ); ?></th>
+						<td>
+							<label>
+								<input type="checkbox" name="<?php echo esc_attr( self::OPTION ); ?>[facturar_despues]" value="si"
+									<?php checked( 'si', self::get( 'facturar_despues', 'si' ) ); ?> />
+								<?php esc_html_e( 'Permitir que el cliente pida la factura a su nombre después de comprar, desde Mi cuenta (la de público en general se cancela y se sustituye).', 'facturacionmozart-woocommerce-plugin' ); ?>
+							</label>
+							<p class="description">
+								<?php esc_html_e( 'Sin marcar, la factura a su nombre solo se pide al comprar y la casilla «Requiero factura» lo avisa. Quien la pidió al comprar puede seguir corrigiendo sus datos si se rechazan.', 'facturacionmozart-woocommerce-plugin' ); ?>
+							</p>
 						</td>
 					</tr>
 				</table>

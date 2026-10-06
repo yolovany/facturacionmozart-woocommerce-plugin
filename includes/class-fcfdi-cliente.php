@@ -464,7 +464,21 @@ class FCFDI_Cliente {
 		if ( in_array( $estatus, array( 'timbrada', 'cancelada', 'encolada', 'en_proceso', 'reintentando' ), true ) ) {
 			return false;
 		}
+		// Sin factura después de comprar, solo quien la pidió al comprar (para corregir sus datos).
+		if ( ! self::facturar_despues() && ! ( class_exists( 'FCFDI_Order_Handler' ) && FCFDI_Order_Handler::requiere_factura( $order ) ) ) {
+			return false;
+		}
 		return (bool) $order->is_paid();
+	}
+
+	/**
+	 * ¿Puede el cliente pedir la factura a su nombre después de comprar? Ajuste «Factura
+	 * después de comprar»; sin marcar, solo al comprar.
+	 *
+	 * @return bool
+	 */
+	public static function facturar_despues() {
+		return 'si' === FCFDI_Settings::get( 'facturar_despues', 'si' );
 	}
 
 	/**
@@ -476,7 +490,7 @@ class FCFDI_Cliente {
 	 * @return bool
 	 */
 	private static function puede_sustituir( $order ) {
-		if ( 'timbrada' !== $order->get_meta( '_fcfdi_estatus' ) || ! $order->get_meta( '_fcfdi_factura_id' )
+		if ( ! self::facturar_despues() || 'timbrada' !== $order->get_meta( '_fcfdi_estatus' ) || ! $order->get_meta( '_fcfdi_factura_id' )
 			|| ! class_exists( 'FCFDI_Order_Handler' ) || FCFDI_Order_Handler::requiere_factura( $order ) ) {
 			return false;
 		}
