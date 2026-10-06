@@ -468,7 +468,8 @@ class FCFDI_Cliente {
 		if ( ! self::facturar_despues() && ! ( class_exists( 'FCFDI_Order_Handler' ) && FCFDI_Order_Handler::requiere_factura( $order ) ) ) {
 			return false;
 		}
-		return (bool) $order->is_paid();
+		// Retenido «en espera» hasta timbrar: ya está pagado aunque WooCommerce no cuente ese estado como pagado.
+		return $order->is_paid() || 'si' === $order->get_meta( '_fcfdi_retener_completado' );
 	}
 
 	/**

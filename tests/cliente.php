@@ -30,9 +30,9 @@ $ajuste = function ( $valor ) {
 $previo  = get_option( FCFDI_Settings::OPTION, array() );
 $usuario = wp_insert_user( array( 'user_login' => 'prueba-cliente-' . time(), 'user_pass' => wp_generate_password(), 'user_email' => 'prueba-cliente-' . time() . '@example.com' ) );
 wp_set_current_user( $usuario );
-$pedido = function ( array $meta ) use ( $usuario ) {
+$pedido = function ( array $meta, $estado = 'processing' ) use ( $usuario ) {
 	$p = wc_create_order( array( 'customer_id' => $usuario ) );
-	$p->set_status( 'processing' );
+	$p->set_status( $estado );
 	foreach ( $meta as $k => $v ) {
 		$p->update_meta_data( $k, $v );
 	}
@@ -42,6 +42,9 @@ $pedido = function ( array $meta ) use ( $usuario ) {
 $publico   = $pedido( array( '_fcfdi_estatus' => 'timbrada', '_fcfdi_factura_id' => 'prueba-1' ) );
 $sin_cfdi  = $pedido( array() );
 $rechazada = $pedido( array( '_fcfdi_requiere_factura' => 'si', '_fcfdi_estatus' => 'error' ) );
+// Como queda en la tienda: pagado y retenido «en espera» hasta timbrar, con los datos rechazados por el SAT.
+$retenida  = $pedido( array( '_fcfdi_requiere_factura' => 'si', '_fcfdi_estatus' => 'error', '_fcfdi_error' => 'RFC_INVALIDO: nombre', '_fcfdi_retener_completado' => 'si', '_fcfdi_estatus_previo' => 'processing' ), 'on-hold' );
+$sin_pagar = $pedido( array( '_fcfdi_requiere_factura' => 'si' ), 'on-hold' );
 $formulario = function ( $p ) {
 	ob_start();
 	FCFDI_Cliente::form_solicitar( $p );
@@ -58,9 +61,11 @@ $igual( 'solo al comprar: no sustituye', false, $puede( 'puede_sustituir', $publ
 $igual( 'solo al comprar: sin formulario en el pedido', false, $formulario( $publico ) );
 $igual( 'solo al comprar: no la pide antes de timbrar', false, $puede( 'puede_solicitar', $sin_cfdi ) );
 $igual( 'solo al comprar: quien la pidió al comprar corrige sus datos', true, $puede( 'puede_solicitar', $rechazada ) );
+$igual( 'retenido en espera con datos rechazados: formulario para corregirlos', true, $formulario( $retenida ) );
+$igual( 'en espera sin pagar: no la pide', false, $puede( 'puede_solicitar', $sin_pagar ) );
 
 update_option( FCFDI_Settings::OPTION, $previo );
-foreach ( array( $publico, $sin_cfdi, $rechazada ) as $p ) {
+foreach ( array( $publico, $sin_cfdi, $rechazada, $retenida, $sin_pagar ) as $p ) {
 	$p->delete( true );
 }
 require_once ABSPATH . 'wp-admin/includes/user.php';

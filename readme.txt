@@ -52,6 +52,8 @@ El plugin conecta tu tienda WooCommerce con el sistema de facturación CFDI medi
   valor, si el SAT rechaza los datos de un pedido retenido se le piden al cliente por correo al
   momento, con recordatorio un día antes; al vencer, se factura a público en general y el pedido
   se libera.
+* Corrección: en un pedido retenido "En espera" con los datos fiscales rechazados, Mi cuenta
+  avisaba que corrigiera sus datos pero no mostraba el formulario.
 * Ajuste "Factura después de comprar" (marcado por omisión, como hasta ahora). Sin marcar, la
   factura a nombre del cliente solo se pide al comprar: Mi cuenta ya no ofrece pedirla ni
   sustituir la de público en general, y la casilla "Requiero factura" avisa que después ya no
