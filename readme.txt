@@ -48,6 +48,14 @@ El plugin conecta tu tienda WooCommerce con el sistema de facturación CFDI medi
 
 = 1.15.4 =
 
+* Existencias desde Mozart: si el emisor tiene almacén de venta en línea en el puente, cada
+  5 minutos la existencia de cada producto y variación es la de ese almacén (SKU = código de
+  barras) y lo que no cruza queda agotado. Lo que se vende se registra en Mozart como salida y
+  lo que regresa (cancelación o reembolso con "Reponer existencias") como entrada. Si Mozart no
+  responde no se toca nada y se avisa tras una hora. Sin almacén en línea la tienda no cambia.
+* Corrección: con cron real, un pedido pagado podía quedarse sin CFDI y sin aviso si el envío
+  al puente corría antes de verse el pago. Ahora el pedido se lee fresco de la base y, si aun
+  así no aparece, queda en error reintentable con aviso.
 * Ajuste "Días para corregir datos fiscales" (vacío por omisión, como hasta ahora). Con un
   valor, si el SAT rechaza los datos de un pedido retenido se le piden al cliente por correo al
   momento, con recordatorio un día antes; al vencer, se factura a público en general y el pedido
